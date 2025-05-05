@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -284,9 +283,17 @@ const Ideas = () => {
               </div>
               
               <DialogFooter>
-                {({close}) => (
-                  <Button onClick={() => handleSubmitIdea(close)}>Share Idea</Button>
-                )}
+                <Button onClick={() => {
+                  const close = () => {
+                    const closeButton = document.querySelector('[data-state="open"] button[toast-close]');
+                    if (closeButton instanceof HTMLElement) {
+                      closeButton.click();
+                    }
+                  };
+                  handleSubmitIdea(close);
+                }}>
+                  Share Idea
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
