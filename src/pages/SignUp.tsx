@@ -59,19 +59,26 @@ const SignUp = () => {
     
     try {
       setIsLoading(true);
+      
       // In a real app, we would send these details to an API
       console.log("Sign up with:", { email, password, username });
       
+      // Simulating API call
+      // IMPORTANT: Using a shorter timeout to improve user experience
       setTimeout(() => {
+        // Set some mock user data in localStorage to simulate registered user
+        localStorage.setItem("hackmap-user", JSON.stringify({ email, username, isLoggedIn: true }));
+        
         toast({
           title: "Account created!",
           description: "You have successfully registered.",
         });
+        
         setIsLoading(false);
         
-        // Redirect to homepage after successful signup
-        navigate("/");
-      }, 1500);
+        // Redirect to homepage after successful signup - forcing a hard navigation
+        window.location.href = "/";
+      }, 1000);
       
     } catch (error) {
       toast({

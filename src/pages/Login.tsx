@@ -41,19 +41,26 @@ const Login = () => {
     
     try {
       setIsLoading(true);
+      
       // In a real app, we would send these details to an API
       console.log("Login with:", { email, password, rememberMe });
       
+      // Simulating API call
+      // IMPORTANT: Using a shorter timeout to improve user experience
       setTimeout(() => {
+        // Set some mock user data in localStorage to simulate logged in state
+        localStorage.setItem("hackmap-user", JSON.stringify({ email, isLoggedIn: true }));
+        
         toast({
           title: "Success!",
           description: "You have successfully logged in.",
         });
+        
         setIsLoading(false);
         
-        // Redirect to homepage after successful login
-        navigate("/");
-      }, 1500);
+        // Redirect to homepage after successful login - forcing a hard navigation
+        window.location.href = "/";
+      }, 1000);
       
     } catch (error) {
       toast({
