@@ -60,8 +60,8 @@ const HackathonCard = ({ hackathon }: HackathonCardProps) => {
           <div className="flex items-center text-sm mr-2">
             <Tag className="h-4 w-4 mr-1 text-gray-500" />
           </div>
-          {hackathon.tags && hackathon.tags.map((tag) => (
-            <Badge key={tag} variant="outline" className="bg-muted text-muted-foreground">
+          {hackathon.tags && hackathon.tags.map((tag, index) => (
+            <Badge key={tag || index} variant="outline" className="bg-muted text-muted-foreground">
               {tag}
             </Badge>
           ))}

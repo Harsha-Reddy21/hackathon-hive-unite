@@ -41,7 +41,13 @@ const initMockData = () => {
         membersCount: 2,
         maxMembers: 5,
         skills: ["AI", "Machine Learning", "Backend", "UI/UX"],
-        inviteCode: "WIZARDS123"
+        inviteCode: "WIZARDS123",
+        projectIdea: {
+          title: "AI Food Waste Reducer",
+          description: "An AI-powered system that helps restaurants reduce food waste through smart inventory management and predictive analytics.",
+          techStack: ["TensorFlow", "React", "Node.js", "PostgreSQL"],
+          progress: 35
+        }
       },
       {
         id: "2",
@@ -55,7 +61,13 @@ const initMockData = () => {
         membersCount: 1,
         maxMembers: 4,
         skills: ["Blockchain", "Smart Contracts", "Frontend", "Solidity"],
-        inviteCode: "PIONEERS456"
+        inviteCode: "PIONEERS456",
+        projectIdea: {
+          title: "Carbon Credit DEX",
+          description: "A decentralized exchange for carbon credits that makes offset trading accessible and transparent.",
+          techStack: ["Ethereum", "Solidity", "React", "Web3.js"],
+          progress: 20
+        }
       },
       {
         id: "3",
@@ -70,7 +82,13 @@ const initMockData = () => {
         membersCount: 2,
         maxMembers: 5,
         skills: ["Healthcare", "Mobile Development", "UX Design"],
-        inviteCode: "HEALTH789"
+        inviteCode: "HEALTH789",
+        projectIdea: {
+          title: "MediTrack App",
+          description: "A comprehensive mobile application for patients to track medications, appointments, and health metrics.",
+          techStack: ["React Native", "Firebase", "Node.js", "MongoDB"],
+          progress: 45
+        }
       }
     ];
     localStorage.setItem("hackmap-teams", JSON.stringify(mockTeams));
@@ -89,7 +107,12 @@ const initMockData = () => {
         location: "San Francisco, CA",
         prizes: ["$10,000 Grand Prize", "Mentorship Opportunities"],
         participantCount: 250,
-        description: "Join us for 3 days of innovation as we explore how artificial intelligence can address pressing social challenges. Teams will collaborate to build solutions that make a positive impact on society. This event brings together developers, designers, and domain experts to create technology with purpose."
+        description: "Join us for 3 days of innovation as we explore how artificial intelligence can address pressing social challenges. Teams will collaborate to build solutions that make a positive impact on society. This event brings together developers, designers, and domain experts to create technology with purpose.",
+        organizer: "Tech for Good Foundation",
+        registrationDeadline: "2025-06-01",
+        website: "https://aiforgood-hackathon.example.com",
+        teams: ["1"], // Reference to team IDs
+        sponsors: ["Microsoft", "Google", "OpenAI"]
       },
       {
         id: "2",
@@ -101,7 +124,12 @@ const initMockData = () => {
         location: "New York, NY",
         prizes: ["$15,000 in ETH", "Accelerator Program Access"],
         participantCount: 320,
-        description: "Dive into the world of Web3 technologies in this exciting hackathon. Build innovative solutions using blockchain, smart contracts, and decentralized technologies. Whether you're an experienced blockchain developer or just getting started, this hackathon offers an opportunity to shape the future of digital ownership and transactions."
+        description: "Dive into the world of Web3 technologies in this exciting hackathon. Build innovative solutions using blockchain, smart contracts, and decentralized technologies. Whether you're an experienced blockchain developer or just getting started, this hackathon offers an opportunity to shape the future of digital ownership and transactions.",
+        organizer: "Blockchain Consortium",
+        registrationDeadline: "2025-07-15",
+        website: "https://web3-challenge.example.com",
+        teams: ["2"], // Reference to team IDs
+        sponsors: ["Ethereum Foundation", "Binance", "Coinbase"]
       },
       {
         id: "3",
@@ -113,7 +141,12 @@ const initMockData = () => {
         location: "Boston, MA",
         prizes: ["$8,000 in Cash Prizes", "Pilot Program with Hospitals"],
         participantCount: 180,
-        description: "This hackathon focuses on technological solutions for healthcare challenges. From patient care to hospital operations, teams will develop innovative tools that can improve health outcomes and streamline medical processes. Join healthcare professionals, engineers, and designers to create the next generation of medical technology."
+        description: "This hackathon focuses on technological solutions for healthcare challenges. From patient care to hospital operations, teams will develop innovative tools that can improve health outcomes and streamline medical processes. Join healthcare professionals, engineers, and designers to create the next generation of medical technology.",
+        organizer: "MedTech Alliance",
+        registrationDeadline: "2025-08-01",
+        website: "https://healthtech-hackathon.example.com",
+        teams: ["3"], // Reference to team IDs
+        sponsors: ["Johnson & Johnson", "Mayo Clinic", "Philips Healthcare"]
       }
     ];
     localStorage.setItem("hackmap-hackathons", JSON.stringify(mockHackathons));
