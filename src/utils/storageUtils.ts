@@ -2,42 +2,29 @@
 /**
  * Utility functions for handling data storage operations with Supabase
  */
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client with fallback values for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-supabase-project-url.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
-
-// Create Supabase client with error handling
-export const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '@/integrations/supabase/client';
 
 // Check if supabase configuration is valid
-const isSupabaseConfigured = supabaseUrl.includes('your-supabase-project-url.supabase.co') ? false : true;
+const isSupabaseConfigured = true; // We're now using the configured client
 
 // Initialize database tables if needed
 export const initializeDatabase = async () => {
   console.info("Checking database tables...");
   
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using fallback storage.");
-    return;
-  }
-  
   try {
-    // This function would normally create tables if they don't exist,
-    // but with Supabase we usually create tables through the dashboard
-    // This is just a placeholder for any initialization logic
-    
     // Verify connection is working
     const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
     
     if (error) {
       console.error("Supabase connection error:", error);
+      return false;
     } else {
       console.info("Supabase connection successful");
+      return true;
     }
   } catch (err) {
     console.error("Database initialization error:", err);
+    return false;
   }
   
   console.info("Database initialization complete");
@@ -45,19 +32,37 @@ export const initializeDatabase = async () => {
 
 // For backwards compatibility with code that was using localStorage
 export const initializeLocalStorage = () => {
-  console.info("initializeLocalStorage called - using Supabase database instead of localStorage");
-  // This function is kept for backward compatibility only
-  // We're now using Supabase for data storage, not localStorage
+  console.info("initializeLocalStorage called - using Supabase database");
+  // Initialize local data if needed for fallback
+  const teams = localStorage.getItem("hackmap-teams");
+  if (!teams) {
+    console.info("Initializing fresh teams data");
+    localStorage.setItem("hackmap-teams", JSON.stringify([]));
+  }
+  
+  const hackathons = localStorage.getItem("hackmap-hackathons");
+  if (!hackathons) {
+    console.info("Initializing fresh hackathons data");
+    localStorage.setItem("hackmap-hackathons", JSON.stringify([]));
+  }
+  
+  const user = localStorage.getItem("hackmap-user");
+  if (!user) {
+    console.info("Initializing fresh user data");
+    localStorage.setItem("hackmap-user", JSON.stringify(null));
+  }
+  
+  const ideas = localStorage.getItem("hackmap-shared-ideas");
+  if (!ideas) {
+    console.info("Initializing fresh ideas data");
+    localStorage.setItem("hackmap-shared-ideas", JSON.stringify([]));
+  }
+  
+  console.info("Fresh data initialization complete");
 };
 
 // Get the current user data
 export const getCurrentUser = async () => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using localStorage fallback.");
-    const userData = localStorage.getItem("hackmap-user");
-    return userData ? JSON.parse(userData) : null;
-  }
-  
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -73,6 +78,9 @@ export const getCurrentUser = async () => {
     }
   } catch (err) {
     console.error("Error getting current user:", err);
+    // Fallback to localStorage
+    const userData = localStorage.getItem("hackmap-user");
+    return userData ? JSON.parse(userData) : null;
   }
   
   return null;
@@ -80,16 +88,6 @@ export const getCurrentUser = async () => {
 
 // Update user in the database
 export const updateUserInStorage = async (updatedUser) => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using localStorage fallback.");
-    const users = JSON.parse(localStorage.getItem("hackmap-users") || "[]");
-    const updatedUsers = users.map(user => 
-      user.id === updatedUser.id ? updatedUser : user
-    );
-    localStorage.setItem("hackmap-users", JSON.stringify(updatedUsers));
-    return updatedUser;
-  }
-  
   try {
     const { data, error } = await supabase
       .from('profiles')
@@ -104,21 +102,18 @@ export const updateUserInStorage = async (updatedUser) => {
     return data;
   } catch (err) {
     console.error("Error updating user:", err);
-    throw err;
+    // Fallback to localStorage
+    const users = JSON.parse(localStorage.getItem("hackmap-users") || "[]");
+    const updatedUsers = users.map(user => 
+      user.id === updatedUser.id ? updatedUser : user
+    );
+    localStorage.setItem("hackmap-users", JSON.stringify(updatedUsers));
+    return updatedUser;
   }
 };
 
 // Add a hackathon to the database
 export const addHackathonToStorage = async (hackathon) => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using localStorage fallback.");
-    const hackathons = JSON.parse(localStorage.getItem("hackmap-hackathons") || "[]");
-    const newHackathon = { ...hackathon, id: `hack-${Date.now()}` };
-    hackathons.push(newHackathon);
-    localStorage.setItem("hackmap-hackathons", JSON.stringify(hackathons));
-    return newHackathon;
-  }
-  
   try {
     const { data, error } = await supabase
       .from('hackathons')
@@ -133,21 +128,17 @@ export const addHackathonToStorage = async (hackathon) => {
     return data[0];
   } catch (err) {
     console.error("Error adding hackathon:", err);
-    throw err;
+    // Fallback to localStorage
+    const hackathons = JSON.parse(localStorage.getItem("hackmap-hackathons") || "[]");
+    const newHackathon = { ...hackathon, id: `hack-${Date.now()}` };
+    hackathons.push(newHackathon);
+    localStorage.setItem("hackmap-hackathons", JSON.stringify(hackathons));
+    return newHackathon;
   }
 };
 
 // Add a team to the database
 export const addTeamToStorage = async (team) => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using localStorage fallback.");
-    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
-    const newTeam = { ...team, id: `team-${Date.now()}` };
-    teams.push(newTeam);
-    localStorage.setItem("hackmap-teams", JSON.stringify(teams));
-    return newTeam;
-  }
-  
   try {
     const { data, error } = await supabase
       .from('teams')
@@ -162,18 +153,17 @@ export const addTeamToStorage = async (team) => {
     return data[0];
   } catch (err) {
     console.error("Error adding team:", err);
-    throw err;
+    // Fallback to localStorage
+    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
+    const newTeam = { ...team, id: `team-${Date.now()}` };
+    teams.push(newTeam);
+    localStorage.setItem("hackmap-teams", JSON.stringify(teams));
+    return newTeam;
   }
 };
 
 // Get all hackathons
 export const getAllHackathons = async () => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using localStorage fallback.");
-    const hackathons = JSON.parse(localStorage.getItem("hackmap-hackathons") || "[]");
-    return hackathons;
-  }
-  
   try {
     const { data, error } = await supabase
       .from('hackathons')
@@ -187,18 +177,14 @@ export const getAllHackathons = async () => {
     return data || [];
   } catch (err) {
     console.error("Error fetching hackathons:", err);
-    return [];
+    // Fallback to localStorage
+    const hackathons = JSON.parse(localStorage.getItem("hackmap-hackathons") || "[]");
+    return hackathons;
   }
 };
 
 // Get all teams
 export const getAllTeams = async () => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using localStorage fallback.");
-    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
-    return teams;
-  }
-  
   try {
     const { data, error } = await supabase
       .from('teams')
@@ -212,18 +198,14 @@ export const getAllTeams = async () => {
     return data || [];
   } catch (err) {
     console.error("Error fetching teams:", err);
-    return [];
+    // Fallback to localStorage
+    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
+    return teams;
   }
 };
 
 // Get team by ID
 export const getTeamById = async (id) => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using localStorage fallback.");
-    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
-    return teams.find(team => team.id === id) || null;
-  }
-  
   try {
     const { data, error } = await supabase
       .from('teams')
@@ -233,24 +215,22 @@ export const getTeamById = async (id) => {
       
     if (error) {
       console.error("Error fetching team:", error);
-      return null;
+      // Fallback to localStorage
+      const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
+      return teams.find(team => team.id === id) || null;
     }
     
     return data;
   } catch (err) {
     console.error("Error fetching team:", err);
-    return null;
+    // Fallback to localStorage
+    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
+    return teams.find(team => team.id === id) || null;
   }
 };
 
 // Get hackathon by ID
 export const getHackathonById = async (id) => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using localStorage fallback.");
-    const hackathons = JSON.parse(localStorage.getItem("hackmap-hackathons") || "[]");
-    return hackathons.find(hackathon => hackathon.id === id) || null;
-  }
-  
   try {
     const { data, error } = await supabase
       .from('hackathons')
@@ -260,28 +240,22 @@ export const getHackathonById = async (id) => {
       
     if (error) {
       console.error("Error fetching hackathon:", error);
-      return null;
+      // Fallback to localStorage
+      const hackathons = JSON.parse(localStorage.getItem("hackmap-hackathons") || "[]");
+      return hackathons.find(hackathon => hackathon.id === id) || null;
     }
     
     return data;
   } catch (err) {
     console.error("Error fetching hackathon:", err);
-    return null;
+    // Fallback to localStorage
+    const hackathons = JSON.parse(localStorage.getItem("hackmap-hackathons") || "[]");
+    return hackathons.find(hackathon => hackathon.id === id) || null;
   }
 };
 
 // Update team in database
 export const updateTeamInStorage = async (updatedTeam) => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using localStorage fallback.");
-    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
-    const updatedTeams = teams.map(team => 
-      team.id === updatedTeam.id ? updatedTeam : team
-    );
-    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
-    return updatedTeam;
-  }
-  
   try {
     const { data, error } = await supabase
       .from('teams')
@@ -297,18 +271,18 @@ export const updateTeamInStorage = async (updatedTeam) => {
     return data[0];
   } catch (err) {
     console.error("Error updating team:", err);
-    throw err;
+    // Fallback to localStorage
+    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
+    const updatedTeams = teams.map(team => 
+      team.id === updatedTeam.id ? updatedTeam : team
+    );
+    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
+    return updatedTeam;
   }
 };
 
 // Get teams for a specific hackathon
 export const getTeamsByHackathonId = async (hackathonId) => {
-  if (!isSupabaseConfigured) {
-    console.warn("Supabase not properly configured. Using localStorage fallback.");
-    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
-    return teams.filter(team => team.hackathonId === hackathonId);
-  }
-  
   try {
     const { data, error } = await supabase
       .from('teams')
@@ -323,6 +297,8 @@ export const getTeamsByHackathonId = async (hackathonId) => {
     return data || [];
   } catch (err) {
     console.error("Error fetching teams by hackathon:", err);
-    return [];
+    // Fallback to localStorage
+    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
+    return teams.filter(team => team.hackathonId === hackathonId);
   }
 };
