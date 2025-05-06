@@ -127,10 +127,10 @@ const Teams = () => {
         // Normalize data to handle both DB field names and client-side field names
         const normalizedTeams = teamsData.map((team: any) => {
           // Parse JSON fields that may be returned as strings from the database
-          const membersArray = parseMembers(team.members);
-          const skillsArray = parseSkills(team.skills);
-          const invitationsArray = parseInvitations(team.invitations);
-          const joinRequestsArray = parseJoinRequests(team.join_requests);
+          const membersArray = parseMembers(team.members || null);
+          const skillsArray = parseSkills(team.skills || null);
+          const invitationsArray = parseInvitations(team.invitations || null);
+          const joinRequestsArray = parseJoinRequests(team.join_requests || null);
           
           const normalizedTeam = {
             id: team.id,
