@@ -3,6 +3,7 @@
  * Utility functions for handling data storage operations with Supabase
  */
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Export supabase for use in other files
 export { supabase };
@@ -35,31 +36,21 @@ export const initializeDatabase = async () => {
 export const initializeLocalStorage = () => {
   console.info("initializeLocalStorage called - using Supabase database");
   // Initialize local data if needed for fallback
-  const teams = localStorage.getItem("hackmap-teams");
-  if (!teams) {
-    console.info("Initializing fresh teams data");
+  if (!localStorage.getItem("hackmap-teams")) {
     localStorage.setItem("hackmap-teams", JSON.stringify([]));
   }
   
-  const hackathons = localStorage.getItem("hackmap-hackathons");
-  if (!hackathons) {
-    console.info("Initializing fresh hackathons data");
+  if (!localStorage.getItem("hackmap-hackathons")) {
     localStorage.setItem("hackmap-hackathons", JSON.stringify([]));
   }
   
-  const user = localStorage.getItem("hackmap-user");
-  if (!user) {
-    console.info("Initializing fresh user data");
+  if (!localStorage.getItem("hackmap-user")) {
     localStorage.setItem("hackmap-user", JSON.stringify(null));
   }
   
-  const ideas = localStorage.getItem("hackmap-shared-ideas");
-  if (!ideas) {
-    console.info("Initializing fresh ideas data");
+  if (!localStorage.getItem("hackmap-shared-ideas")) {
     localStorage.setItem("hackmap-shared-ideas", JSON.stringify([]));
   }
-  
-  console.info("Fresh data initialization complete");
 };
 
 // Get the current user data
@@ -93,13 +84,15 @@ export const updateUserInStorage = async (updatedUser: any) => {
     const { data, error } = await supabase
       .from('profiles')
       .update(updatedUser)
-      .eq('id', updatedUser.id);
+      .eq('id', updatedUser.id)
+      .select();
       
     if (error) {
       console.error("Error updating user:", error);
       throw error;
     }
     
+    toast.success("User profile updated successfully");
     return data;
   } catch (err) {
     console.error("Error updating user:", err);
@@ -123,9 +116,12 @@ export const addHackathonToStorage = async (hackathon: any) => {
       
     if (error) {
       console.error("Error adding hackathon:", error);
+      toast.error("Failed to create hackathon");
       throw error;
     }
     
+    toast.success("Hackathon created successfully");
+    console.log("Hackathon created:", data);
     return data[0];
   } catch (err) {
     console.error("Error adding hackathon:", err);
@@ -140,6 +136,7 @@ export const addHackathonToStorage = async (hackathon: any) => {
 
 // Add a team to the database
 export const addTeamToStorage = async (team: any) => {
+  console.log("Adding team to storage:", team);
   try {
     const { data, error } = await supabase
       .from('teams')
@@ -148,9 +145,12 @@ export const addTeamToStorage = async (team: any) => {
       
     if (error) {
       console.error("Error adding team:", error);
+      toast.error("Failed to create team");
       throw error;
     }
     
+    toast.success("Team created successfully");
+    console.log("Team created:", data);
     return data[0];
   } catch (err) {
     console.error("Error adding team:", err);
@@ -166,6 +166,7 @@ export const addTeamToStorage = async (team: any) => {
 // Get all hackathons
 export const getAllHackathons = async () => {
   try {
+    console.log("Fetching all hackathons from Supabase");
     const { data, error } = await supabase
       .from('hackathons')
       .select('*');
@@ -175,6 +176,9 @@ export const getAllHackathons = async () => {
       throw error;
     }
     
+    console.log("Hackathons fetched:", data);
+    // Update localStorage for backward compatibility
+    localStorage.setItem("hackmap-hackathons", JSON.stringify(data || []));
     return data || [];
   } catch (err) {
     console.error("Error fetching hackathons:", err);
@@ -187,6 +191,7 @@ export const getAllHackathons = async () => {
 // Get all teams
 export const getAllTeams = async () => {
   try {
+    console.log("Fetching all teams from Supabase");
     const { data, error } = await supabase
       .from('teams')
       .select('*');
@@ -196,6 +201,9 @@ export const getAllTeams = async () => {
       throw error;
     }
     
+    console.log("Teams fetched:", data);
+    // Update localStorage for backward compatibility
+    localStorage.setItem("hackmap-teams", JSON.stringify(data || []));
     return data || [];
   } catch (err) {
     console.error("Error fetching teams:", err);
@@ -266,9 +274,11 @@ export const updateTeamInStorage = async (updatedTeam: any) => {
       
     if (error) {
       console.error("Error updating team:", error);
+      toast.error("Failed to update team");
       throw error;
     }
     
+    toast.success("Team updated successfully");
     return data[0];
   } catch (err) {
     console.error("Error updating team:", err);

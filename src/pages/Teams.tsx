@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Users, Search, Plus, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { 
   Dialog,
   DialogTrigger,
@@ -18,8 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { sendTeamInviteEmail, sendJoinRequestEmail } from "@/utils/emailService";
-import { initializeLocalStorage } from "@/utils/storageUtils";
-import { supabase } from "@/integrations/supabase/client";
+import { getAllTeams, getCurrentUser, updateTeamInStorage, initializeLocalStorage, supabase } from "@/utils/storageUtils";
 
 interface TeamMember {
   id: string;
@@ -43,17 +43,24 @@ interface Invitation {
 interface Team {
   id: string;
   name: string;
-  hackathonId: string;
-  hackathonName: string;
+  hackathon_id?: string;
+  hackathonId?: string; // For backwards compatibility
+  hackathon_name?: string;
+  hackathonName?: string; // For backwards compatibility
   description: string;
   members: TeamMember[];
   membersCount: number;
   maxMembers: number;
+  max_members?: number; // For database mapping
+  members_count?: number; // For database mapping
   skills: string[];
   joinRequests?: JoinRequest[];
+  join_requests?: JoinRequest[]; // For database mapping
   invitations?: Invitation[];
   inviteCode?: string;
+  invite_code?: string; // For database mapping
   createdAt?: string;
+  created_at?: string; // For database mapping
 }
 
 const Teams = () => {
@@ -64,40 +71,47 @@ const Teams = () => {
   const [joinByCodeOpen, setJoinByCodeOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [codeError, setCodeError] = useState("");
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast: uiToast } = useToast();
   
-  // Load teams from localStorage or database
+  // Load teams from Supabase
   useEffect(() => {
     // Initialize storage if needed
     initializeLocalStorage();
     
-    const loadTeams = () => {
-      console.log("Loading teams data");
-      const teamsData = localStorage.getItem("hackmap-teams");
-      if (teamsData) {
-        const loadedTeams = JSON.parse(teamsData);
-        console.log("Loaded teams:", loadedTeams);
-        setTeams(loadedTeams as Team[]);
-      } else {
-        localStorage.setItem("hackmap-teams", JSON.stringify([]));
-      }
-    };
-    
-    const loadCurrentUser = () => {
-      console.log("Loading current user data");
-      const userData = localStorage.getItem("hackmap-user");
-      if (userData) {
-        const user = JSON.parse(userData);
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        console.log("Loading teams and user data");
+        
+        // Load teams from Supabase
+        const teamsData = await getAllTeams();
+        console.log("Teams loaded:", teamsData);
+        
+        // Normalize data to handle both DB field names and client-side field names
+        const normalizedTeams = teamsData.map((team: any) => ({
+          ...team,
+          hackathonId: team.hackathon_id || team.hackathonId,
+          hackathonName: team.hackathon_name || team.hackathonName,
+          members: team.members || [],
+          membersCount: team.members_count || team.membersCount || 0,
+          maxMembers: team.max_members || team.maxMembers || 5,
+          inviteCode: team.invite_code || team.inviteCode,
+          skills: team.skills || []
+        }));
+        
+        setTeams(normalizedTeams);
+        
+        // Load current user
+        const user = await getCurrentUser();
         console.log("Current user:", user);
         setCurrentUser(user);
         
         // Check for invitations for this user
-        const teamsData = localStorage.getItem("hackmap-teams");
-        if (teamsData) {
-          const allTeams = JSON.parse(teamsData);
+        if (user) {
           const invitations = [];
           
-          for (const team of allTeams) {
+          for (const team of normalizedTeams) {
             if (team.invitations) {
               const userInvitation = team.invitations.find(
                 (inv: Invitation) => inv.username === user.username && inv.status === "pending"
@@ -116,19 +130,30 @@ const Teams = () => {
           console.log("User invitations:", invitations);
           setMyInvitations(invitations);
         }
+      } catch (error) {
+        console.error("Error loading data:", error);
+        toast.error("Failed to load teams");
+      } finally {
+        setIsLoading(false);
       }
     };
     
-    loadTeams();
-    loadCurrentUser();
+    loadData();
     
-    // Listen for storage changes in case teams are updated in another tab
-    window.addEventListener('storage', loadTeams);
-    window.addEventListener('storage', loadCurrentUser);
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          const user = await getCurrentUser();
+          setCurrentUser(user);
+        } else if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
+        }
+      }
+    );
     
     return () => {
-      window.removeEventListener('storage', loadTeams);
-      window.removeEventListener('storage', loadCurrentUser);
+      authListener?.subscription.unsubscribe();
     };
   }, []);
   
@@ -137,13 +162,13 @@ const Teams = () => {
     (team) =>
       team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       team.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      team.hackathonName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (team.hackathonName || team.hackathon_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       team.skills.some((skill) => skill.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleJoinTeamRequest = async (team: Team) => {
     if (!currentUser) {
-      toast({
+      uiToast({
         title: "Authentication Required",
         description: "Please log in to join teams",
         variant: "destructive",
@@ -154,7 +179,7 @@ const Teams = () => {
     // Check if user is already a member of this team
     const isMember = team.members.some(member => member.id === currentUser.id);
     if (isMember) {
-      toast({
+      uiToast({
         title: "Already a Member",
         description: "You are already a member of this team",
         variant: "destructive",
@@ -164,7 +189,7 @@ const Teams = () => {
     
     // Check if the team is full
     if (team.membersCount >= team.maxMembers) {
-      toast({
+      uiToast({
         title: "Team Full",
         description: "This team has reached its maximum number of members",
         variant: "destructive",
@@ -173,39 +198,63 @@ const Teams = () => {
     }
     
     // Add request to team
-    const updatedTeams = teams.map(t => {
-      if (t.id === team.id) {
-        const joinRequests = t.joinRequests || [];
-        // Check if already requested
-        if (joinRequests.some(req => req.userId === currentUser.id)) {
-          toast({
-            title: "Request Already Sent",
-            description: "You have already requested to join this team",
-            variant: "destructive",
-          });
-          return t;
-        }
-        
-        return {
-          ...t,
-          joinRequests: [
-            ...joinRequests,
-            {
-              id: `request-${Date.now()}`,
-              userId: currentUser.id,
-              username: currentUser.username,
-              requestDate: new Date().toISOString()
-            }
-          ]
-        };
+    try {
+      // Get the latest team data from the database
+      const { data: latestTeam } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('id', team.id)
+        .maybeSingle();
+      
+      if (!latestTeam) {
+        toast.error("Team not found");
+        return;
       }
-      return t;
-    });
-    
-    // Find team leader to send email notification
-    const teamToJoin = updatedTeams.find(t => t.id === team.id);
-    if (teamToJoin) {
-      const teamLeader = teamToJoin.members.find(member => member.role === "leader" || member.role === "Team Lead");
+      
+      const joinRequests = latestTeam.join_requests || [];
+      
+      // Check if already requested
+      if (joinRequests.some((req: JoinRequest) => req.userId === currentUser.id)) {
+        uiToast({
+          title: "Request Already Sent",
+          description: "You have already requested to join this team",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Add the new request
+      const updatedRequests = [
+        ...joinRequests,
+        {
+          id: `request-${Date.now()}`,
+          userId: currentUser.id,
+          username: currentUser.username,
+          requestDate: new Date().toISOString()
+        }
+      ];
+      
+      // Update the team
+      const { data: updatedTeam, error } = await supabase
+        .from('teams')
+        .update({ join_requests: updatedRequests })
+        .eq('id', team.id)
+        .select();
+      
+      if (error) {
+        console.error("Error updating team:", error);
+        toast.error("Failed to send join request");
+        return;
+      }
+      
+      // Update local state
+      const updatedTeams = teams.map(t => 
+        t.id === team.id ? { ...t, joinRequests: updatedRequests } : t
+      );
+      setTeams(updatedTeams);
+      
+      // Find team leader to send email notification
+      const teamLeader = team.members.find(member => member.role === "leader" || member.role === "Team Lead");
       if (teamLeader) {
         // Send email notification to team leader
         await sendJoinRequestEmail(
@@ -214,120 +263,141 @@ const Teams = () => {
           team.name
         );
       }
+      
+      uiToast({
+        title: "Request Sent!",
+        description: `Your request to join ${team.name} has been sent to the team leader.`,
+      });
+    } catch (err) {
+      console.error("Error joining team:", err);
+      toast.error("Failed to send join request");
     }
-    
-    // Update localStorage and trigger storage event
-    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
-    setTeams(updatedTeams as Team[]);
-    window.dispatchEvent(new Event('storage'));
-    
-    toast({
-      title: "Request Sent!",
-      description: `Your request to join ${team.name} has been sent to the team leader.`,
-    });
   };
 
   const handleAcceptInvitation = async (teamId: string) => {
     if (!currentUser) return;
     
-    // Find the team
-    const teamToAccept = teams.find(team => team.id === teamId);
-    
-    const updatedTeams = teams.map(team => {
-      if (team.id === teamId) {
-        // Find and update the invitation
-        const updatedInvitations = team.invitations?.map(inv => {
-          if (inv.username === currentUser.username) {
-            return { ...inv, status: "accepted" as "pending" | "accepted" | "declined" };
-          }
-          return inv;
-        }) || [];
-        
-        // Add user as a member
-        return {
-          ...team,
-          members: [
-            ...team.members,
-            {
-              id: currentUser.id,
-              username: currentUser.username,
-              role: "member"
-            }
-          ],
-          membersCount: team.membersCount + 1,
-          invitations: updatedInvitations
-        };
+    try {
+      // Find the team
+      const { data: team } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('id', teamId)
+        .maybeSingle();
+      
+      if (!team) {
+        toast.error("Team not found");
+        return;
       }
-      return team;
-    });
-    
-    // Send email notification for acceptance
-    if (teamToAccept) {
-      await sendTeamInviteEmail(
-        currentUser.username,
-        teamToAccept.name,
-        teamToAccept.hackathonName,
-        undefined // No invite code needed as they're already accepting
-      );
+      
+      // Find and update the invitation
+      const invitations = team.invitations || [];
+      const updatedInvitations = invitations.map((inv: Invitation) => {
+        if (inv.username === currentUser.username) {
+          return { ...inv, status: "accepted" as const };
+        }
+        return inv;
+      });
+      
+      // Add user as a member
+      const members = team.members || [];
+      const updatedMembers = [
+        ...members,
+        {
+          id: currentUser.id,
+          username: currentUser.username,
+          role: "member"
+        }
+      ];
+      
+      // Update the team in the database
+      const { data: updatedTeam, error } = await supabase
+        .from('teams')
+        .update({ 
+          invitations: updatedInvitations,
+          members: updatedMembers,
+          members_count: (team.members_count || 0) + 1
+        })
+        .eq('id', teamId)
+        .select();
+      
+      if (error) {
+        console.error("Error accepting invitation:", error);
+        toast.error("Failed to accept invitation");
+        return;
+      }
+      
+      // Update local state
+      setTeams(teams.map(t => t.id === teamId ? {
+        ...t,
+        invitations: updatedInvitations,
+        members: updatedMembers,
+        membersCount: t.membersCount + 1
+      } : t));
+      
+      // Remove invitation from user's list
+      setMyInvitations(myInvitations.filter(inv => inv.teamId !== teamId));
+      
+      toast.success("You have joined the team!");
+    } catch (err) {
+      console.error("Error accepting invitation:", err);
+      toast.error("Failed to accept invitation");
     }
-    
-    // Update localStorage
-    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
-    setTeams(updatedTeams as Team[]);
-    
-    // Remove invitation from user's list
-    setMyInvitations(myInvitations.filter(inv => inv.teamId !== teamId));
-    
-    toast({
-      title: "Invitation Accepted",
-      description: `You have joined the team!`,
-    });
-    
-    // Trigger storage event for other tabs
-    window.dispatchEvent(new Event('storage'));
   };
 
-  const handleDeclineInvitation = (teamId: string) => {
+  const handleDeclineInvitation = async (teamId: string) => {
     if (!currentUser) return;
     
-    // Find the team
-    const updatedTeams = teams.map(team => {
-      if (team.id === teamId) {
-        // Find and update the invitation
-        const updatedInvitations = team.invitations?.map(inv => {
-          if (inv.username === currentUser.username) {
-            return { ...inv, status: "declined" as "pending" | "accepted" | "declined" };
-          }
-          return inv;
-        }) || [];
-        
-        return {
-          ...team,
-          invitations: updatedInvitations
-        };
+    try {
+      // Find the team
+      const { data: team } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('id', teamId)
+        .maybeSingle();
+      
+      if (!team) {
+        toast.error("Team not found");
+        return;
       }
-      return team;
-    });
-    
-    // Update localStorage
-    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
-    setTeams(updatedTeams as Team[]);
-    
-    // Remove invitation from user's list
-    setMyInvitations(myInvitations.filter(inv => inv.teamId !== teamId));
-    
-    toast({
-      title: "Invitation Declined",
-      description: `You have declined the team invitation.`,
-    });
-    
-    // Trigger storage event for other tabs
-    window.dispatchEvent(new Event('storage'));
+      
+      // Find and update the invitation
+      const invitations = team.invitations || [];
+      const updatedInvitations = invitations.map((inv: Invitation) => {
+        if (inv.username === currentUser.username) {
+          return { ...inv, status: "declined" as const };
+        }
+        return inv;
+      });
+      
+      // Update the team in the database
+      const { error } = await supabase
+        .from('teams')
+        .update({ invitations: updatedInvitations })
+        .eq('id', teamId);
+      
+      if (error) {
+        console.error("Error declining invitation:", error);
+        toast.error("Failed to decline invitation");
+        return;
+      }
+      
+      // Update local state
+      setTeams(teams.map(t => t.id === teamId ? { ...t, invitations: updatedInvitations } : t));
+      
+      // Remove invitation from user's list
+      setMyInvitations(myInvitations.filter(inv => inv.teamId !== teamId));
+      
+      toast.success("Invitation declined");
+    } catch (err) {
+      console.error("Error declining invitation:", err);
+      toast.error("Failed to decline invitation");
+    }
   };
   
-  const handleJoinByCode = () => {
+  const handleJoinByCode = async () => {
     if (!currentUser) {
-      toast({
+      uiToast({
         title: "Not Logged In",
         description: "Please log in to join a team",
         variant: "destructive",
@@ -340,62 +410,96 @@ const Teams = () => {
       return;
     }
     
-    // Find team with matching code
-    const team = teams.find(t => t.inviteCode === inviteCode.trim());
-    
-    if (!team) {
-      setCodeError("Invalid invite code. Please check and try again.");
-      return;
-    }
-    
-    // Check if user is already a member
-    if (team.members.some(member => member.id === currentUser.id)) {
-      setCodeError("You're already a member of this team");
-      return;
-    }
-    
-    // Check if team is full
-    if (team.membersCount >= team.maxMembers) {
-      setCodeError("This team has reached its maximum number of members");
-      return;
-    }
-    
-    // Add user to team
-    const updatedTeams = teams.map(t => {
-      if (t.id === team.id) {
-        return {
-          ...t,
-          members: [
-            ...t.members,
-            {
-              id: currentUser.id,
-              username: currentUser.username,
-              role: "member"
-            }
-          ],
-          membersCount: t.membersCount + 1
-        };
+    try {
+      // Find team with matching code
+      const { data: matchingTeams, error } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('invite_code', inviteCode.trim());
+      
+      if (error) {
+        console.error("Error finding team by code:", error);
+        setCodeError("An error occurred. Please try again.");
+        return;
       }
-      return t;
-    });
-    
-    // Update localStorage
-    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
-    setTeams(updatedTeams as Team[]);
-    
-    // Close dialog and reset fields
-    setJoinByCodeOpen(false);
-    setInviteCode("");
-    setCodeError("");
-    
-    toast({
-      title: "Team Joined",
-      description: `You have successfully joined ${team.name}!`,
-    });
-    
-    // Trigger storage event for other tabs
-    window.dispatchEvent(new Event('storage'));
+      
+      if (!matchingTeams || matchingTeams.length === 0) {
+        setCodeError("Invalid invite code. Please check and try again.");
+        return;
+      }
+      
+      const team = matchingTeams[0];
+      
+      // Check if user is already a member
+      const members = team.members || [];
+      if (members.some(member => member.id === currentUser.id)) {
+        setCodeError("You're already a member of this team");
+        return;
+      }
+      
+      // Check if team is full
+      if ((team.members_count || 0) >= (team.max_members || 5)) {
+        setCodeError("This team has reached its maximum number of members");
+        return;
+      }
+      
+      // Add user to team
+      const updatedMembers = [
+        ...members,
+        {
+          id: currentUser.id,
+          username: currentUser.username,
+          role: "member"
+        }
+      ];
+      
+      // Update the team in the database
+      const { data: updatedTeam, error: updateError } = await supabase
+        .from('teams')
+        .update({ 
+          members: updatedMembers,
+          members_count: (team.members_count || 0) + 1
+        })
+        .eq('id', team.id)
+        .select();
+      
+      if (updateError) {
+        console.error("Error joining team:", updateError);
+        toast.error("Failed to join team");
+        return;
+      }
+      
+      // Update local state
+      setTeams(teams.map(t => t.id === team.id ? {
+        ...t,
+        members: updatedMembers,
+        membersCount: (t.membersCount || 0) + 1
+      } : t));
+      
+      // Close dialog and reset fields
+      setJoinByCodeOpen(false);
+      setInviteCode("");
+      setCodeError("");
+      
+      toast.success(`You have successfully joined ${team.name}!`);
+    } catch (err) {
+      console.error("Error joining by code:", err);
+      setCodeError("An error occurred. Please try again.");
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div>
+        <Navbar />
+        <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Loading teams...</h1>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
