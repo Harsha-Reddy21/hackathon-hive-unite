@@ -21,6 +21,8 @@ const SignUp = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
+  type Role = 'organizer' | 'attendee';
+  const [role, setRole] = useState<Role>("attendee");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -67,7 +69,7 @@ const SignUp = () => {
       // IMPORTANT: Using a shorter timeout to improve user experience
       setTimeout(() => {
         // Set some mock user data in localStorage to simulate registered user
-        localStorage.setItem("hackmap-user", JSON.stringify({ email, username, isLoggedIn: true }));
+        localStorage.setItem("hackmap-user", JSON.stringify({ email, username, role, isLoggedIn: true }));
         
         toast({
           title: "Account created!",
@@ -99,8 +101,41 @@ const SignUp = () => {
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Create your account</CardTitle>
               <CardDescription>
-                Join HackMap to discover hackathons and build amazing teams
-              </CardDescription>
+              Select your role:
+              <div className="mt-2 flex space-x-4">
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    id="organizer"
+                    name="role"
+                    value="organizer"
+                    checked={role === "organizer"}
+                    onChange={(e) => setRole(e.target.value as Role)}
+                    className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="organizer" className="ml-2 block text-sm font-medium text-gray-700">
+                    Organizer
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    id="attendee"
+                    name="role"
+                    value="attendee"
+                    checked={role === "attendee"}
+                    onChange={(e) => setRole(e.target.value as Role)}
+                    className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="attendee" className="ml-2 block text-sm font-medium text-gray-700">
+                    Attendee
+                  </label>
+                </div>
+              </div>
+            </CardDescription>
+            <CardDescription>
+              Join HackMap to discover hackathons and build amazing teams
+            </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">

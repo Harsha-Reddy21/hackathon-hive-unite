@@ -15,6 +15,7 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
+  const [role, setRole] = useState("attendee");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -26,6 +27,7 @@ const Navbar = () => {
         const user = JSON.parse(userData);
         setIsLoggedIn(!!user.isLoggedIn);
         setUsername(user.username || "User");
+        setRole(user.role || "attendee");
       } else {
         setIsLoggedIn(false);
       }
@@ -79,7 +81,19 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="rounded-full">
                     <div className="flex items-center space-x-2">
-                      <User className="h-6 w-6" />
+                      <div className="relative">
+                        <User className="h-6 w-6" />
+                        {role === "organizer" && (
+                          <span className="absolute -top-1 -right-1 bg-hackmap-purple text-white text-xs px-1.5 py-0.5 rounded-full">
+                            Organizer
+                          </span>
+                        )}
+                        {role === "attendee" && (
+                          <span className="absolute -top-1 -right-1 bg-hackmap-blue text-white text-xs px-1.5 py-0.5 rounded-full">
+                            Attendee
+                          </span>
+                        )}
+                      </div>
                       <span className="text-sm font-medium">{username}</span>
                     </div>
                   </Button>
