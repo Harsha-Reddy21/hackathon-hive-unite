@@ -32,18 +32,31 @@ const HackathonDetail = () => {
       setIsRegistered(false);
     }
     
-    // Find hackathon by ID
-    const foundHackathon = mockHackathons.find(h => h.id === id);
+    // First check localStorage for hackathon data
+    const storedHackathons = localStorage.getItem("hackmap-hackathons");
+    let foundHackathon = null;
+    
+    if (storedHackathons) {
+      const parsedHackathons = JSON.parse(storedHackathons);
+      foundHackathon = parsedHackathons.find((h: any) => h.id === id);
+    }
+    
+    // If not found in localStorage, check mock data
+    if (!foundHackathon) {
+      foundHackathon = mockHackathons.find(h => h.id === id);
+    }
+    
     if (foundHackathon) {
-      // Add some additional data to the hackathon
+      // Add some additional data to the hackathon if needed
       setHackathon({
         ...foundHackathon,
-        location: "San Francisco, CA",
-        organizer: "TechFoundation",
-        description: "Join us for an exciting hackathon focused on " + foundHackathon.theme + 
+        location: foundHackathon.location || "San Francisco, CA",
+        organizer: foundHackathon.organizer || "TechFoundation",
+        description: foundHackathon.description || 
+          "Join us for an exciting hackathon focused on " + foundHackathon.theme + 
           ". Teams will collaborate to build innovative solutions addressing real-world challenges. " +
           "This event brings together developers, designers, and problem solvers for 48 hours of creativity and coding.",
-        schedule: [
+        schedule: foundHackathon.schedule || [
           { time: "Day 1, 9:00 AM", activity: "Opening Ceremony" },
           { time: "Day 1, 10:00 AM", activity: "Team Formation" },
           { time: "Day 1, 12:00 PM", activity: "Lunch Break" },
@@ -52,14 +65,16 @@ const HackathonDetail = () => {
           { time: "Day 2, 2:00 PM", activity: "Judging" },
           { time: "Day 2, 4:00 PM", activity: "Awards Ceremony" }
         ],
-        prizes: [
+        prizes: foundHackathon.prizes || [
           { place: "1st Place", reward: "$5,000 and mentorship opportunities" },
           { place: "2nd Place", reward: "$2,500 and cloud credits" },
           { place: "3rd Place", reward: "$1,000 and developer tools" },
           { place: "Best UI/UX", reward: "$500" }
         ],
-        sponsors: ["TechCorp", "DevTools Inc.", "CloudServices", "StartupLabs"]
+        sponsors: foundHackathon.sponsors || ["TechCorp", "DevTools Inc.", "CloudServices", "StartupLabs"]
       });
+    } else {
+      console.error("Hackathon not found with ID:", id);
     }
   }, [id]);
 
@@ -126,6 +141,17 @@ const HackathonDetail = () => {
       </div>
     );
   }
+
+  // Get teams for this hackathon
+  const getTeamsForHackathon = () => {
+    const storedTeams = localStorage.getItem("hackmap-teams");
+    if (!storedTeams) return [];
+    
+    const allTeams = JSON.parse(storedTeams);
+    return allTeams.filter((team: any) => team.hackathonId === hackathon.id);
+  };
+
+  const hackathonTeams = getTeamsForHackathon();
 
   return (
     <div>
@@ -317,18 +343,30 @@ const HackathonDetail = () => {
                   </Button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[1, 2, 3].map(num => (
-                    <Card key={num}>
-                      <CardContent className="pt-6">
-                        <h3 className="font-bold mb-1">Team {num}</h3>
-                        <p className="text-sm text-gray-500 mb-2">5 members</p>
-                        <p className="text-sm mb-3">Building a solution for {hackathon.theme}</p>
-                        <Button asChild size="sm" variant="outline">
-                          <Link to={`/teams/${num}`}>View Team</Link>
+                  {hackathonTeams.length > 0 ? (
+                    hackathonTeams.map((team: any) => (
+                      <Card key={team.id}>
+                        <CardContent className="pt-6">
+                          <h3 className="font-bold mb-1">{team.name}</h3>
+                          <p className="text-sm text-gray-500 mb-2">{team.members?.length || 0} members</p>
+                          <p className="text-sm mb-3">{team.description?.substring(0, 100)}...</p>
+                          <Button asChild size="sm" variant="outline">
+                            <Link to={`/teams/${team.id}`}>View Team</Link>
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <Card className="col-span-1 md:col-span-3">
+                      <CardContent className="pt-6 text-center py-12">
+                        <h3 className="text-lg font-semibold mb-2">No teams yet</h3>
+                        <p className="text-gray-600 mb-6">Be the first to create a team for this hackathon!</p>
+                        <Button asChild>
+                          <Link to="/teams/create">Create Team</Link>
                         </Button>
                       </CardContent>
                     </Card>
-                  ))}
+                  )}
                 </div>
               </div>
             ) : (

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +41,36 @@ const Dashboard = () => {
 
       // Get all hackathons
       const storedHackathons = localStorage.getItem("hackmap-hackathons");
+      const mockHackathons = [
+        {
+          id: "1",
+          title: "AI for Good Hackathon",
+          theme: "Using AI to solve social problems",
+          startDate: "2025-06-15",
+          endDate: "2025-06-17",
+          tags: ["AI", "Social Impact", "Machine Learning"],
+          location: "San Francisco, CA"
+        },
+        {
+          id: "2",
+          title: "Web3 Innovation Challenge",
+          theme: "Building the decentralized future",
+          startDate: "2025-07-22",
+          endDate: "2025-07-24",
+          tags: ["Blockchain", "Web3", "DeFi"],
+          location: "New York, NY"
+        },
+        {
+          id: "3",
+          title: "HealthTech Hackathon",
+          theme: "Innovation in healthcare technology",
+          startDate: "2025-08-10",
+          endDate: "2025-08-12",
+          tags: ["Healthcare", "IoT", "Mobile"],
+          location: "Boston, MA"
+        }
+      ];
+      
       if (storedHackathons) {
         const allHackathons = JSON.parse(storedHackathons);
         
@@ -50,7 +79,16 @@ const Dashboard = () => {
         const registeredHackathonsData = allHackathons.filter((hackathon: any) => 
           registeredHackathons.includes(hackathon.id)
         );
-        setRegisteredHackathons(registeredHackathonsData);
+        
+        // If no registered hackathons found in localStorage, fallback to mock data
+        if (registeredHackathonsData.length === 0 && registeredHackathons.length > 0) {
+          const mockRegisteredHackathons = mockHackathons.filter((hackathon) => 
+            registeredHackathons.includes(hackathon.id)
+          );
+          setRegisteredHackathons(mockRegisteredHackathons);
+        } else {
+          setRegisteredHackathons(registeredHackathonsData);
+        }
 
         // Filter created hackathons for organizers
         if (parsedUserData.role === 'organizer') {
@@ -59,6 +97,12 @@ const Dashboard = () => {
           );
           setCreatedHackathons(createdHackathons);
         }
+      } else if (parsedUserData.registeredHackathons && parsedUserData.registeredHackathons.length > 0) {
+        // Fallback to mock data if no hackathons in localStorage
+        const mockRegisteredHackathons = mockHackathons.filter((hackathon) => 
+          parsedUserData.registeredHackathons.includes(hackathon.id)
+        );
+        setRegisteredHackathons(mockRegisteredHackathons);
       }
 
       // Initialize teams
@@ -67,9 +111,12 @@ const Dashboard = () => {
         const allTeams = JSON.parse(storedTeams);
         // Filter teams where user is a member
         const userTeams = allTeams.filter((team: any) => 
-          team.members.some((member: any) => member.username === parsedUserData.username)
+          team.members.some((member: any) => 
+            member.username === parsedUserData.username || member.name === parsedUserData.username
+          )
         );
-        setTeams(userTeams);
+        
+        setTeams(userTeams.length > 0 ? userTeams : []);
       } else {
         // Fallback to mock teams if no teams in localStorage
         const teamsData = [];
@@ -78,12 +125,21 @@ const Dashboard = () => {
             id: `team-${i + 1}`,
             name: `Team ${i + 1}`,
             hackathonName: "AI for Good Hackathon",
-            members: 3,
+            hackathonId: "1",
+            members: [
+              { id: parsedUserData.id || "user-1", username: parsedUserData.username || "User", role: "member" }
+            ],
+            membersCount: 1,
             maxMembers: 5,
             skills: ["AI", "Machine Learning", "Backend"]
           });
         }
-        setTeams(teamsData);
+        
+        // Save mock teams to localStorage for persistence
+        if (teamsData.length > 0) {
+          localStorage.setItem("hackmap-teams", JSON.stringify(teamsData));
+          setTeams(teamsData);
+        }
       }
     }
   }, []);
@@ -200,13 +256,13 @@ const Dashboard = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="p-4">
-                    <p className="text-gray-500 mb-4">{hackathon.description}</p>
+                    <p className="text-gray-500 mb-4">{hackathon.description || hackathon.theme}</p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-purple/10 text-hackmap-purple">
                           {new Date(hackathon.startDate).toLocaleDateString()} - {new Date(hackathon.endDate).toLocaleDateString()}
                         </span>
-                        {hackathon.tags?.map((tag: string) => (
+                        {hackathon.tags?.slice(0, 1).map((tag: string) => (
                           <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-purple/5 text-hackmap-purple/90">
                             {tag}
                           </span>
@@ -307,14 +363,14 @@ const Dashboard = () => {
                         <h3 className="font-semibold mb-2">Members</h3>
                         <div className="flex items-center space-x-2">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-blue/10 text-hackmap-blue">
-                            {team.members ? team.members.length : team.members}/{team.maxMembers}
+                            {team.members ? team.members.length : team.membersCount}/{team.maxMembers}
                           </span>
                         </div>
                       </div>
                       <div>
                         <h3 className="font-semibold mb-2">Skills</h3>
                         <div className="flex flex-wrap gap-2">
-                          {team.skills.map((skill: string) => (
+                          {team.skills?.map((skill: string) => (
                             <span key={skill} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-blue/5 text-hackmap-blue/90">
                               {skill}
                             </span>

@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { sendTeamInviteEmail, sendJoinRequestEmail } from "@/utils/emailService";
 
 interface TeamMember {
   id: string;
@@ -129,7 +129,7 @@ const Teams = () => {
       team.skills.some((skill) => skill.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleJoinTeamRequest = (team: Team) => {
+  const handleJoinTeamRequest = async (team: Team) => {
     if (!currentUser) {
       toast({
         title: "Authentication Required",
@@ -190,6 +190,20 @@ const Teams = () => {
       return t;
     });
     
+    // Find team leader to send email notification
+    const teamToJoin = updatedTeams.find(t => t.id === team.id);
+    if (teamToJoin) {
+      const teamLeader = teamToJoin.members.find(member => member.role === "leader" || member.role === "Team Lead");
+      if (teamLeader) {
+        // Send email notification to team leader
+        await sendJoinRequestEmail(
+          teamLeader.username.includes('@') ? teamLeader.username : `${teamLeader.username}@example.com`,
+          currentUser.username,
+          team.name
+        );
+      }
+    }
+    
     // Update localStorage
     localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
     setTeams(updatedTeams as Team[]);
@@ -200,10 +214,12 @@ const Teams = () => {
     });
   };
 
-  const handleAcceptInvitation = (teamId: string) => {
+  const handleAcceptInvitation = async (teamId: string) => {
     if (!currentUser) return;
     
     // Find the team
+    const teamToAccept = teams.find(team => team.id === teamId);
+    
     const updatedTeams = teams.map(team => {
       if (team.id === teamId) {
         // Find and update the invitation
@@ -231,6 +247,16 @@ const Teams = () => {
       }
       return team;
     });
+    
+    // Send email notification for acceptance
+    if (teamToAccept) {
+      await sendTeamInviteEmail(
+        currentUser.username,
+        teamToAccept.name,
+        teamToAccept.hackathonName,
+        undefined // No invite code needed as they're already accepting
+      );
+    }
     
     // Update localStorage
     localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));

@@ -88,10 +88,32 @@ const TeamDetail = () => {
       setIsMember(randomMember);
     }
     
-    // Find team by ID
-    const foundTeam = mockTeams.find(t => t.id === id);
+    // Find team by ID from localStorage first
+    const storedTeams = localStorage.getItem("hackmap-teams");
+    let foundTeam = null;
+    
+    if (storedTeams) {
+      const parsedTeams = JSON.parse(storedTeams);
+      foundTeam = parsedTeams.find((t: any) => t.id === id);
+    }
+    
+    // If not found in localStorage, check mock data
+    if (!foundTeam) {
+      foundTeam = mockTeams.find(t => t.id === id);
+    }
+    
     if (foundTeam) {
+      // Check if the current user is a member of this team
+      if (userData) {
+        const user = JSON.parse(userData);
+        const userIsMember = foundTeam.members.some((member: any) => 
+          member.username === user.username || member.name === user.username
+        );
+        setIsMember(userIsMember);
+      }
       setTeam(foundTeam);
+    } else {
+      console.error("Team not found with ID:", id);
     }
   }, [id]);
 
@@ -110,6 +132,35 @@ const TeamDetail = () => {
       title: "Request Sent",
       description: "Your request to join the team has been sent to the team leader.",
     });
+    
+    // Send email notification (simulated)
+    console.log("Sending email to team leader about join request");
+    
+    // Update team in localStorage
+    const storedTeams = localStorage.getItem("hackmap-teams");
+    if (storedTeams) {
+      const userData = JSON.parse(localStorage.getItem("hackmap-user") || "{}");
+      const allTeams = JSON.parse(storedTeams);
+      const updatedTeams = allTeams.map((t: any) => {
+        if (t.id === id) {
+          const joinRequests = t.joinRequests || [];
+          return {
+            ...t,
+            joinRequests: [
+              ...joinRequests,
+              {
+                id: `request-${Date.now()}`,
+                userId: userData.id || Date.now().toString(),
+                username: userData.username || "User",
+                requestDate: new Date().toISOString()
+              }
+            ]
+          };
+        }
+        return t;
+      });
+      localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
+    }
   };
   
   const handleLeaveTeam = () => {
@@ -118,6 +169,28 @@ const TeamDetail = () => {
       title: "Team Left",
       description: "You have successfully left the team.",
     });
+    
+    // Update team in localStorage
+    const storedTeams = localStorage.getItem("hackmap-teams");
+    const userData = localStorage.getItem("hackmap-user");
+    
+    if (storedTeams && userData) {
+      const user = JSON.parse(userData);
+      const allTeams = JSON.parse(storedTeams);
+      const updatedTeams = allTeams.map((t: any) => {
+        if (t.id === id) {
+          return {
+            ...t,
+            members: t.members.filter((member: any) => 
+              member.username !== user.username && member.name !== user.username
+            ),
+            membersCount: t.membersCount > 0 ? t.membersCount - 1 : 0
+          };
+        }
+        return t;
+      });
+      localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
+    }
   };
 
   if (!team) {
