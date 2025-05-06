@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Hackathons from "./pages/Hackathons";
 import HackathonDetail from "./pages/HackathonDetail";
@@ -25,8 +25,11 @@ import HackathonCreate from "./pages/HackathonCreate";
 
 // Create a centralized store for mock data to ensure consistency
 const initMockData = () => {
-  // Initialize mock teams if not already present
-  if (!localStorage.getItem("hackmap-teams")) {
+  const shouldReinitialize = false; // Set to true to force data reset for debugging
+
+  // Initialize mock teams if not already present or force reinitialize
+  if (!localStorage.getItem("hackmap-teams") || shouldReinitialize) {
+    console.log("Initializing mock teams data");
     const mockTeams = [
       {
         id: "1",
@@ -94,8 +97,9 @@ const initMockData = () => {
     localStorage.setItem("hackmap-teams", JSON.stringify(mockTeams));
   }
   
-  // Initialize mock hackathons if not already present
-  if (!localStorage.getItem("hackmap-hackathons")) {
+  // Initialize mock hackathons if not already present or force reinitialize
+  if (!localStorage.getItem("hackmap-hackathons") || shouldReinitialize) {
+    console.log("Initializing mock hackathons data");
     const mockHackathons = [
       {
         id: "1",
@@ -154,6 +158,7 @@ const initMockData = () => {
   
   // Initialize default user if needed for testing
   if (!localStorage.getItem("hackmap-user")) {
+    console.log("Initializing mock user data");
     const defaultUser = {
       id: "default-user",
       username: "testuser",
@@ -166,6 +171,8 @@ const initMockData = () => {
     };
     localStorage.setItem("hackmap-user", JSON.stringify(defaultUser));
   }
+  
+  console.log("Mock data initialization complete");
 };
 
 const queryClient = new QueryClient();
@@ -173,7 +180,12 @@ const queryClient = new QueryClient();
 const App = () => {
   // Initialize mock data
   useEffect(() => {
-    initMockData();
+    try {
+      initMockData();
+      console.log("Data initialization successful");
+    } catch (error) {
+      console.error("Error initializing mock data:", error);
+    }
   }, []);
 
   return (

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
+import { toast } from "@/hooks/use-toast";
 
 const NotFound = () => {
   const location = useLocation();
@@ -11,6 +12,7 @@ const NotFound = () => {
   const [resourceType, setResourceType] = useState<string>("");
   const [resourceId, setResourceId] = useState<string>("");
   const [suggestedItems, setSuggestedItems] = useState<any[]>([]);
+  const [loadAttempted, setLoadAttempted] = useState<boolean>(false);
 
   useEffect(() => {
     console.error(
@@ -26,24 +28,43 @@ const NotFound = () => {
     setResourceType(type);
     setResourceId(id);
     
+    // Show toast notification
+    toast({
+      title: "Page Not Found",
+      description: `The page at ${location.pathname} doesn't exist.`,
+      variant: "destructive",
+    });
+    
     // Provide suggestions based on available data
     if (type === 'hackathons') {
-      const hackathons = JSON.parse(localStorage.getItem('hackmap-hackathons') || '[]');
-      setSuggestedItems(hackathons.slice(0, 3));
-      
-      // Log detailed error if ID was provided
-      if (id && !hackathons.some((h: any) => h.id === id)) {
-        console.error(`Hackathon with ID ${id} not found`);
+      const hackathonsData = localStorage.getItem('hackmap-hackathons');
+      if (hackathonsData) {
+        const hackathons = JSON.parse(hackathonsData);
+        setSuggestedItems(hackathons.slice(0, 3));
+        
+        // Log detailed error if ID was provided
+        if (id && !hackathons.some((h: any) => h.id === id)) {
+          console.error(`Hackathon with ID ${id} not found`);
+        }
+      } else {
+        console.error('No hackathon data found in localStorage');
       }
     } else if (type === 'teams') {
-      const teams = JSON.parse(localStorage.getItem('hackmap-teams') || '[]');
-      setSuggestedItems(teams.slice(0, 3));
-      
-      // Log detailed error if ID was provided
-      if (id && !teams.some((t: any) => t.id === id)) {
-        console.error(`Team with ID ${id} not found`);
+      const teamsData = localStorage.getItem('hackmap-teams');
+      if (teamsData) {
+        const teams = JSON.parse(teamsData);
+        setSuggestedItems(teams.slice(0, 3));
+        
+        // Log detailed error if ID was provided
+        if (id && !teams.some((t: any) => t.id === id)) {
+          console.error(`Team with ID ${id} not found`);
+        }
+      } else {
+        console.error('No team data found in localStorage');
       }
     }
+    
+    setLoadAttempted(true);
   }, [location.pathname]);
 
   const goBack = () => {
@@ -76,7 +97,7 @@ const NotFound = () => {
               : "The page you're looking for doesn't exist or has been moved."}
           </p>
           
-          {suggestedItems.length > 0 && (
+          {suggestedItems.length > 0 && loadAttempted && (
             <div className="mb-6">
               <p className="font-medium text-gray-700 mb-3">
                 You might be interested in:
@@ -93,6 +114,14 @@ const NotFound = () => {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+          
+          {suggestedItems.length === 0 && loadAttempted && (
+            <div className="mb-6">
+              <p className="font-medium text-gray-700 mb-3">
+                No suggestions available
+              </p>
             </div>
           )}
           

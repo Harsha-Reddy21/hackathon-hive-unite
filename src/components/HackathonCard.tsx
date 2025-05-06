@@ -15,6 +15,12 @@ export interface Hackathon {
   prizes?: string[];
   tags?: string[];
   participantCount?: number;
+  description?: string;
+  location?: string;
+  organizer?: string;
+  website?: string;
+  teams?: string[];
+  sponsors?: string[];
 }
 
 interface HackathonCardProps {
@@ -46,26 +52,30 @@ const HackathonCard = ({ hackathon }: HackathonCardProps) => {
             {formattedStartDate} - {formattedEndDate}
           </span>
         </div>
-        <div className="flex items-center text-sm">
-          <Award className="h-4 w-4 mr-2 text-hackmap-blue" />
-          <span>{hackathon.prizes && hackathon.prizes.length > 0 ? hackathon.prizes[0] : "Prizes to be announced"}</span>
-        </div>
+        {hackathon.prizes && hackathon.prizes.length > 0 && (
+          <div className="flex items-center text-sm">
+            <Award className="h-4 w-4 mr-2 text-hackmap-blue" />
+            <span>{hackathon.prizes[0]}</span>
+          </div>
+        )}
         {hackathon.participantCount && (
           <div className="flex items-center text-sm">
             <Users className="h-4 w-4 mr-2 text-gray-500" />
             <span>{hackathon.participantCount} participants</span>
           </div>
         )}
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center text-sm mr-2">
-            <Tag className="h-4 w-4 mr-1 text-gray-500" />
+        {hackathon.tags && hackathon.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <div className="flex items-center text-sm mr-2">
+              <Tag className="h-4 w-4 mr-1 text-gray-500" />
+            </div>
+            {hackathon.tags.map((tag, index) => (
+              <Badge key={index} variant="outline" className="bg-muted text-muted-foreground">
+                {tag}
+              </Badge>
+            ))}
           </div>
-          {hackathon.tags && hackathon.tags.map((tag, index) => (
-            <Badge key={tag || index} variant="outline" className="bg-muted text-muted-foreground">
-              {tag}
-            </Badge>
-          ))}
-        </div>
+        )}
       </CardContent>
       <CardFooter className="pt-0">
         <Button asChild className="w-full">
