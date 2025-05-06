@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { sendTeamInviteEmail, sendJoinRequestEmail } from "@/utils/emailService";
-import { initializeLocalStorage } from "@/utils/storageUtils";
+import { initializeLocalStorage, supabase } from "@/utils/storageUtils";
 
 interface TeamMember {
   id: string;
@@ -65,9 +65,9 @@ const Teams = () => {
   const [codeError, setCodeError] = useState("");
   const { toast } = useToast();
   
-  // Load teams from localStorage
+  // Load teams from localStorage or database
   useEffect(() => {
-    // Initialize localStorage if needed
+    // Initialize storage if needed
     initializeLocalStorage();
     
     const loadTeams = () => {

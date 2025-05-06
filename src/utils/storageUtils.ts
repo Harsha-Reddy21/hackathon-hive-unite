@@ -21,6 +21,13 @@ export const initializeDatabase = async () => {
   console.info("Database initialization complete");
 };
 
+// For backwards compatibility with code that was using localStorage
+export const initializeLocalStorage = () => {
+  console.info("initializeLocalStorage called - using Supabase database instead of localStorage");
+  // This function is kept for backward compatibility only
+  // We're now using Supabase for data storage, not localStorage
+};
+
 // Get the current user data
 export const getCurrentUser = async () => {
   const { data: { user } } = await supabase.auth.getUser();
