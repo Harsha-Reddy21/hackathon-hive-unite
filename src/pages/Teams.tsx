@@ -36,12 +36,12 @@ interface Team {
   hackathon_id?: string;
   hackathon_name?: string;
   description: string;
-  members: TeamMember[];
-  membersCount: number;
-  maxMembers: number;
+  members?: TeamMember[];
+  membersCount?: number;
+  maxMembers?: number;
   max_members?: number; // For database mapping
   members_count?: number; // For database mapping
-  skills: string[];
+  skills?: string[];
   joinRequests?: JoinRequest[];
   join_requests?: JoinRequest[] | Json; // For database mapping
   invitations?: Invitation[] | Json;
@@ -158,7 +158,8 @@ const Teams = () => {
           
           for (const team of normalizedTeams) {
             if (Array.isArray(team.invitations)) {
-              const userInvitation = team.invitations.find(
+              const parsedInvitations = parseInvitations(team.invitations as Json);
+              const userInvitation = parsedInvitations.find(
                 (inv) => inv.username === userProfile.username && inv.status === "pending"
               );
               
@@ -238,7 +239,8 @@ const Teams = () => {
     }
     
     // Check if user is already a member of this team
-    if (Array.isArray(team.members) && team.members.some(member => member.id === currentUser.id)) {
+    const parsedMembers = parseMembers(team.members as Json);
+    if (parsedMembers.some(member => member.id === currentUser.id)) {
       uiToast({
         description: "You are already a member of this team",
         variant: "destructive",
@@ -247,7 +249,7 @@ const Teams = () => {
     }
     
     // Check if the team is full
-    if (team.membersCount >= team.maxMembers) {
+    if ((team.membersCount || 0) >= (team.maxMembers || 5)) {
       uiToast({
         description: "This team has reached its maximum number of members",
         variant: "destructive",
@@ -312,8 +314,7 @@ const Teams = () => {
       setTeams(updatedTeams);
       
       // Find team leader to send email notification
-      const teamMembers = parseMembers(latestTeam.members);
-      const teamLeader = teamMembers.find(member => member.role === "leader" || member.role === "Team Lead");
+      const teamLeader = parsedMembers.find(member => member.role === "leader" || member.role === "Team Lead");
       
       if (teamLeader) {
         // In a real app, you would send an email notification here
@@ -389,7 +390,7 @@ const Teams = () => {
         ...t,
         invitations: updatedInvitations,
         members: updatedMembers,
-        membersCount: t.membersCount + 1
+        membersCount: (t.membersCount || 0) + 1
       } : t));
       
       // Remove invitation from user's list

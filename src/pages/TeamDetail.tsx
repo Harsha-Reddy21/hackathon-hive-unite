@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -36,7 +37,7 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
         // Parse JSON fields
         const teamWithParsedFields = {
           ...teamData,
-          members: parseMembers(teamData.members),
+          members: parseMembers(teamData.members || teamData.members_data),
           skills: parseSkills(teamData.skills),
           invitations: parseInvitations(teamData.invitations),
           joinRequests: parseJoinRequests(teamData.join_requests)

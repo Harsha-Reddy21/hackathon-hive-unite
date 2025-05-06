@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getCurrentUser, getAllHackathons } from "@/utils/storageUtils";
+import { getCurrentUser, getAllHackathons, initializeLocalStorage } from "@/utils/storageUtils";
 
 const MyHackathons = () => {
   const [registeredHackathons, setRegisteredHackathons] = useState<any[]>([]);
@@ -37,7 +37,10 @@ const MyHackathons = () => {
         
         // Filter registered hackathons (if any registrations exist)
         // Access registered_hackathons from user_metadata if it exists
-        const userRegisteredHackathonsIds = currentUser?.user_metadata?.registered_hackathons || [];
+        const userRegisteredHackathonsIds = 
+          currentUser?.user_metadata?.registered_hackathons || 
+          [];
+        
         const registeredHackathonsData = allHackathons.filter((hackathon) => 
           userRegisteredHackathonsIds.includes(hackathon.id)
         );

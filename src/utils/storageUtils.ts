@@ -93,7 +93,22 @@ export const parseMembers = (data: Json | null): TeamMember[] => {
     }
     
     if (Array.isArray(data)) {
-      return data as TeamMember[];
+      // Type cast with explicit mapping to ensure correct structure
+      return data.map(member => {
+        if (typeof member === 'object' && member !== null) {
+          const m = member as Record<string, any>;
+          return {
+            id: String(m.id || ''),
+            username: String(m.username || ''),
+            role: String(m.role || '')
+          };
+        }
+        return {
+          id: '',
+          username: '',
+          role: ''
+        };
+      });
     }
     
     return [];
@@ -112,6 +127,7 @@ export const parseInvitations = (data: Json | null): Invitation[] => {
     }
     
     if (Array.isArray(data)) {
+      // Type cast with explicit mapping to ensure correct structure
       return data.map(item => {
         // Ensure the item has the correct shape
         if (typeof item === 'object' && item !== null) {
@@ -146,7 +162,24 @@ export const parseJoinRequests = (data: Json | null): JoinRequest[] => {
     }
     
     if (Array.isArray(data)) {
-      return data as JoinRequest[];
+      // Type cast with explicit mapping to ensure correct structure
+      return data.map(item => {
+        if (typeof item === 'object' && item !== null) {
+          const req = item as Record<string, any>;
+          return {
+            id: String(req.id || ''),
+            userId: String(req.userId || req.user_id || ''),
+            username: String(req.username || ''),
+            requestDate: String(req.requestDate || req.request_date || new Date().toISOString())
+          };
+        }
+        return {
+          id: '',
+          userId: '',
+          username: '',
+          requestDate: ''
+        };
+      });
     }
     
     return [];
@@ -193,6 +226,27 @@ export const updateUserInStorage = async (updatedUser: any) => {
     return data;
   } catch (err) {
     console.error("Error updating user:", err);
+    throw err;
+  }
+};
+
+// Get all hackathons
+export const getAllHackathons = async () => {
+  try {
+    console.log("Fetching all hackathons from Supabase");
+    const { data, error } = await supabase
+      .from('hackathons')
+      .select('*');
+      
+    if (error) {
+      console.error("Error fetching hackathons:", error);
+      throw error;
+    }
+    
+    console.log("Hackathons fetched:", data);
+    return data || [];
+  } catch (err) {
+    console.error("Error fetching hackathons:", err);
     throw err;
   }
 };
