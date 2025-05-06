@@ -42,34 +42,43 @@ const Login = () => {
     try {
       setIsLoading(true);
       
-      // Simulate checking credentials - in a real app with Supabase this would be a proper auth check
-      // For demo, let's at least check against localStorage data if it exists
-      const storedUserData = localStorage.getItem("hackmap-user");
+      // Get all users from localStorage
+      const allUsersData = localStorage.getItem("hackmap-all-users");
+      const allUsers = allUsersData ? JSON.parse(allUsersData) : [];
       
-      if (storedUserData) {
-        const userData = JSON.parse(storedUserData);
+      // Find user by email
+      const user = allUsers.find((user: any) => 
+        user.email.toLowerCase() === email.toLowerCase()
+      );
+      
+      if (user) {
+        // In a real app, we'd verify password hash here
+        // For demo purposes, we'll just authenticate the user
+        const updatedUser = {
+          ...user,
+          isLoggedIn: true,
+          lastLoginAt: new Date().toISOString()
+        };
         
-        // Check if email exists and password matches (this is unsafe, just for demo)
-        if (userData.email === email) {
-          // Here we'd normally verify the password hash, but for demo we'll just check if emails match
-          // In a real app with Supabase, this would use proper authentication
-
-          localStorage.setItem("hackmap-user", JSON.stringify({ 
-            ...userData,
-            isLoggedIn: true 
-          }));
-          
-          toast({
-            title: "Success!",
-            description: "You have successfully logged in.",
-          });
-          
-          navigate("/"); // Use navigate instead of force reload
-          return;
-        }
+        // Update current user in localStorage
+        localStorage.setItem("hackmap-user", JSON.stringify(updatedUser));
+        
+        // Update user in all users array
+        const updatedAllUsers = allUsers.map((u: any) => 
+          u.id === user.id ? updatedUser : u
+        );
+        localStorage.setItem("hackmap-all-users", JSON.stringify(updatedAllUsers));
+        
+        toast({
+          title: "Success!",
+          description: "You have successfully logged in.",
+        });
+        
+        navigate("/");
+        return;
       }
       
-      // If we get here, authentication failed
+      // If we get here, user was not found
       toast({
         title: "Error",
         description: "Invalid email or password. Please try again.",

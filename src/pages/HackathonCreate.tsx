@@ -1,40 +1,35 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, Plus, X } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 const HackathonCreate = () => {
-  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
   const [location, setLocation] = useState("");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [registrationDeadline, setRegistrationDeadline] = useState<Date | undefined>(undefined);
+  const [tags, setTags] = useState<string[]>([]);
+  const [currentTag, setCurrentTag] = useState("");
   const [prizes, setPrizes] = useState("");
-  const [rules, setRules] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!name || !description || !startDate || !endDate || !location) {
+  const handleCreateHackathon = async () => {
+    if (!title || !description || !location || !startDate || !endDate || !registrationDeadline) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -43,186 +38,294 @@ const HackathonCreate = () => {
       return;
     }
 
-    if (endDate <= startDate) {
+    if (startDate > endDate) {
       toast({
         title: "Error",
-        description: "End date must be after start date",
+        description: "End date cannot be before start date",
         variant: "destructive",
       });
       return;
     }
 
-    try {
-      setIsLoading(true);
+    if (registrationDeadline > startDate) {
+      toast({
+        title: "Error",
+        description: "Registration deadline cannot be after start date",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      // In a real app, we would send this data to an API
-      const hackathonData = {
-        id: Date.now().toString(),
-        name,
+    setIsLoading(true);
+
+    try {
+      // Get current user data
+      const userData = localStorage.getItem("hackmap-user");
+      if (!userData) {
+        throw new Error("You must be logged in to create a hackathon");
+      }
+      const currentUser = JSON.parse(userData);
+      
+      // Create new hackathon object
+      const newHackathon = {
+        id: `hackathon-${Date.now()}`,
+        title,
         description,
+        location,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        location,
+        registrationDeadline: registrationDeadline.toISOString(),
+        tags: tags.length > 0 ? tags : ["General"],
         prizes,
-        rules,
-        organizer: localStorage.getItem("hackmap-user")?.split("@", 1)[0] || "Anonymous",
+        createdAt: new Date().toISOString(),
+        organizer: {
+          id: currentUser.id,
+          username: currentUser.username
+        },
+        participants: [],
+        teams: [],
+        isActive: true
       };
 
-      // Update user data with created hackathon
-      const userData = JSON.parse(localStorage.getItem("hackmap-user") || '{}');
-      if (userData.role === 'organizer') {
-        userData.createdHackathons = userData.createdHackathons || [];
-        userData.createdHackathons.push(hackathonData.id);
-        localStorage.setItem("hackmap-user", JSON.stringify(userData));
-      }
+      // Get existing hackathons or initialize empty array
+      const existingHackathons = localStorage.getItem("hackmap-hackathons");
+      const hackathons = existingHackathons ? JSON.parse(existingHackathons) : [];
+      
+      // Add new hackathon to array
+      hackathons.push(newHackathon);
+      
+      // Save back to localStorage (this makes it globally available)
+      localStorage.setItem("hackmap-hackathons", JSON.stringify(hackathons));
+      
+      // Also update user's hackathon count
+      currentUser.hackathonCount = (currentUser.hackathonCount || 0) + 1;
+      localStorage.setItem("hackmap-user", JSON.stringify(currentUser));
 
-      console.log("Creating hackathon:", hackathonData);
+      toast({
+        title: "Success",
+        description: "Hackathon created successfully!",
+      });
 
-      // Simulating API call
-      setTimeout(() => {
-        toast({
-          title: "Success",
-          description: "Hackathon created successfully!",
-        });
-        setIsLoading(false);
-        navigate("/my-hackathons");
-      }, 1000);
+      // Navigate to hackathons page
+      navigate("/hackathons");
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create hackathon. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create hackathon",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
 
+  const addTag = () => {
+    if (currentTag && !tags.includes(currentTag)) {
+      setTags([...tags, currentTag]);
+      setCurrentTag("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
   return (
-    <div className="container mx-auto py-8">
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle>Create New Hackathon</CardTitle>
-          <CardDescription>Share your hackathon with the community</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name">Hackathon Name *</Label>
-              <Input
-                id="name"
-                placeholder="e.g., Hackathon 2025"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
+    <div>
+      <Navbar />
+      <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Hackathon</h1>
+          <p className="text-gray-600">Fill in the details to create your hackathon</p>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                placeholder="Tell us about your hackathon..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Hackathon Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title">Hackathon Title</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter hackathon title"
+                  required
+                />
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date *</Label>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe your hackathon"
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Online or Physical Location"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PPP") : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <div>
+                  <Label>End Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PPP") : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div>
+                <Label>Registration Deadline</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
-                      id="startDate"
                       variant={"outline"}
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
+                        !registrationDeadline && "text-muted-foreground"
                       )}
                     >
-                      {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {registrationDeadline ? format(registrationDeadline, "PPP") : "Select date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={startDate}
-                      onSelect={setStartDate}
-                      disabled={(date) =>
-                        date < new Date() || (endDate && date > endDate)
-                      }
+                      selected={registrationDeadline}
+                      onSelect={setRegistrationDeadline}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="endDate">End Date *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="endDate"
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground"
-                      )}
-                    >
-                      {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={setEndDate}
-                      disabled={(date) =>
-                        date < new Date() || (startDate && date < startDate)
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+              <div>
+                <Label>Tags</Label>
+                <div className="flex items-center space-x-2 mb-2">
+                  <Input
+                    value={currentTag}
+                    onChange={(e) => setCurrentTag(e.target.value)}
+                    placeholder="e.g., AI, Web3, Healthcare"
+                  />
+                  <Button 
+                    type="button" 
+                    onClick={addTag}
+                    size="sm"
+                    disabled={!currentTag.trim()}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {tags.map((tag, index) => (
+                      <div
+                        key={index}
+                        className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full flex items-center"
+                      >
+                        <span>{tag}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="ml-2 text-gray-500 hover:text-gray-700"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="prizes">Prizes (optional)</Label>
+                <Textarea
+                  id="prizes"
+                  value={prizes}
+                  onChange={(e) => setPrizes(e.target.value)}
+                  placeholder="Describe prizes and rewards"
+                  rows={2}
+                />
+              </div>
+
+              <div className="flex justify-end space-x-4 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/hackathons")}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateHackathon}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Creating..." : "Create Hackathon"}
+                </Button>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Location *</Label>
-              <Input
-                id="location"
-                placeholder="e.g., Online or City, Country"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="prizes">Prizes</Label>
-              <Textarea
-                id="prizes"
-                placeholder="Describe the prizes and rewards..."
-                value={prizes}
-                onChange={(e) => setPrizes(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="rules">Rules</Label>
-              <Textarea
-                id="rules"
-                placeholder="List the rules and guidelines for participants..."
-                value={rules}
-                onChange={(e) => setRules(e.target.value)}
-              />
-            </div>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-end">
-          <Button type="submit" form="hackathon-form" disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create Hackathon"}
-          </Button>
-        </CardFooter>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,79 +9,60 @@ import { Users, Search, Plus, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
+interface TeamMember {
+  id: string;
+  username: string;
+  role: string;
+}
+
 interface Team {
   id: string;
   name: string;
+  hackathonId: string;
   hackathonName: string;
   description: string;
-  members: number;
+  members: TeamMember[];
+  membersCount: number;
   maxMembers: number;
   skills: string[];
 }
 
-const mockTeams: Team[] = [
-  {
-    id: "1",
-    name: "Code Wizards",
-    hackathonName: "AI for Good Hackathon",
-    description: "Building an AI solution to help identify and reduce food waste in restaurants",
-    members: 3,
-    maxMembers: 5,
-    skills: ["AI", "Machine Learning", "Backend", "UI/UX"]
-  },
-  {
-    id: "2",
-    name: "Blockchain Pioneers",
-    hackathonName: "Web3 Innovation Challenge",
-    description: "Creating a decentralized marketplace for carbon credits using blockchain",
-    members: 2,
-    maxMembers: 4,
-    skills: ["Blockchain", "Smart Contracts", "Frontend", "Solidity"]
-  },
-  {
-    id: "3",
-    name: "Health Innovators",
-    hackathonName: "HealthTech Hackathon",
-    description: "Developing a mobile app for remote patient monitoring using IoT devices",
-    members: 2,
-    maxMembers: 4,
-    skills: ["Mobile Dev", "IoT", "Healthcare", "Backend"]
-  },
-  {
-    id: "4",
-    name: "Green Tech Solutions",
-    hackathonName: "Climate Change Challenge",
-    description: "Building an application to track and reduce personal carbon footprints",
-    members: 1,
-    maxMembers: 5,
-    skills: ["Data Visualization", "Full Stack", "Mobile Dev"]
-  },
-  {
-    id: "5",
-    name: "EdTech Explorers",
-    hackathonName: "EdTech Innovation Jam",
-    description: "Creating an AR learning platform for interactive education experiences",
-    members: 2,
-    maxMembers: 5,
-    skills: ["AR/VR", "Frontend", "Mobile Dev", "3D Modeling"]
-  },
-  {
-    id: "6",
-    name: "FinTech Disruptors",
-    hackathonName: "FinTech Revolution",
-    description: "Developing a new approach to personal finance management with AI",
-    members: 3,
-    maxMembers: 4,
-    skills: ["AI", "Finance", "Data Science", "UX Research"]
-  }
-];
-
 const Teams = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const { toast } = useToast();
   
+  // Load teams from localStorage
+  useEffect(() => {
+    const loadTeams = () => {
+      const teamsData = localStorage.getItem("hackmap-teams");
+      if (teamsData) {
+        const loadedTeams = JSON.parse(teamsData);
+        setTeams(loadedTeams);
+      }
+    };
+    
+    const loadCurrentUser = () => {
+      const userData = localStorage.getItem("hackmap-user");
+      if (userData) {
+        setCurrentUser(JSON.parse(userData));
+      }
+    };
+    
+    loadTeams();
+    loadCurrentUser();
+    
+    // Listen for storage changes in case teams are updated in another tab
+    window.addEventListener('storage', loadTeams);
+    
+    return () => {
+      window.removeEventListener('storage', loadTeams);
+    };
+  }, []);
+  
   // Filter teams based on search query
-  const filteredTeams = mockTeams.filter(
+  const filteredTeams = teams.filter(
     (team) =>
       team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       team.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -89,10 +70,74 @@ const Teams = () => {
       team.skills.some((skill) => skill.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleJoinTeamRequest = (teamName: string) => {
+  const handleJoinTeamRequest = (team: Team) => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to join teams",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if user is already a member of this team
+    const isMember = team.members.some(member => member.id === currentUser.id);
+    if (isMember) {
+      toast({
+        title: "Already a Member",
+        description: "You are already a member of this team",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if the team is full
+    if (team.membersCount >= team.maxMembers) {
+      toast({
+        title: "Team Full",
+        description: "This team has reached its maximum number of members",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Add request to team
+    const updatedTeams = teams.map(t => {
+      if (t.id === team.id) {
+        const joinRequests = t.joinRequests || [];
+        // Check if already requested
+        if (joinRequests.some(req => req.userId === currentUser.id)) {
+          toast({
+            title: "Request Already Sent",
+            description: "You have already requested to join this team",
+            variant: "destructive",
+          });
+          return t;
+        }
+        
+        return {
+          ...t,
+          joinRequests: [
+            ...joinRequests,
+            {
+              id: `request-${Date.now()}`,
+              userId: currentUser.id,
+              username: currentUser.username,
+              requestDate: new Date().toISOString()
+            }
+          ]
+        };
+      }
+      return t;
+    });
+    
+    // Update localStorage
+    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
+    setTeams(updatedTeams);
+    
     toast({
       title: "Request Sent!",
-      description: `Your request to join ${teamName} has been sent to the team leader.`,
+      description: `Your request to join ${team.name} has been sent to the team leader.`,
     });
   };
 
@@ -132,7 +177,7 @@ const Teams = () => {
                   <CardTitle className="text-xl font-bold flex items-center justify-between">
                     <span>{team.name}</span>
                     <Badge className="ml-2 bg-hackmap-blue">
-                      {team.members}/{team.maxMembers} Members
+                      {team.membersCount}/{team.maxMembers} Members
                     </Badge>
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">{team.hackathonName}</p>
@@ -163,7 +208,7 @@ const Teams = () => {
                     </Button>
                     <Button
                       className="flex-1 bg-hackmap-purple hover:bg-hackmap-purple/90"
-                      onClick={() => handleJoinTeamRequest(team.name)}
+                      onClick={() => handleJoinTeamRequest(team)}
                     >
                       <UserPlus className="h-4 w-4 mr-2" /> Join Team
                     </Button>
