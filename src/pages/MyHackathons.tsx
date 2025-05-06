@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { initializeLocalStorage } from "@/utils/storageUtils";
+import { getCurrentUser, getAllHackathons } from "@/utils/storageUtils";
 
 const MyHackathons = () => {
   const [registeredHackathons, setRegisteredHackathons] = useState<any[]>([]);
@@ -15,116 +16,55 @@ const MyHackathons = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Initialize localStorage if needed
-    initializeLocalStorage();
-    
-    // Get user data to check if logged in
-    const storedUserData = localStorage.getItem("hackmap-user");
-    if (!storedUserData) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Parse user data
-    const parsedUserData = JSON.parse(storedUserData);
-    setUserData(parsedUserData);
-    console.log("Current user data:", parsedUserData);
-
-    // Get all hackathons from localStorage
-    const hackathonsData = localStorage.getItem("hackmap-hackathons");
-    
-    if (hackathonsData) {
-      const allHackathons = JSON.parse(hackathonsData);
-      console.log("All hackathons:", allHackathons);
+    const loadData = async () => {
+      setIsLoading(true);
       
-      // Filter registered hackathons
-      const userRegisteredHackathons = parsedUserData.registeredHackathons || [];
-      console.log("User registered hackathons IDs:", userRegisteredHackathons);
-      
-      const registeredHackathonsData = allHackathons.filter((hackathon) => 
-        userRegisteredHackathons && userRegisteredHackathons.includes(hackathon.id)
-      );
-      console.log("Filtered registered hackathons:", registeredHackathonsData);
-      setRegisteredHackathons(registeredHackathonsData);
-      
-      // Filter created hackathons (if user is an organizer)
-      const createdHackathonsData = allHackathons.filter((hackathon) => {
-        console.log("Checking hackathon:", hackathon.id, hackathon.organizer);
+      try {
+        // Get current user data
+        const currentUser = await getCurrentUser();
+        setUserData(currentUser);
         
-        if (!hackathon.organizer) return false;
-        
-        if (typeof hackathon.organizer === 'string') {
-          return hackathon.organizer === parsedUserData.username;
-        } else if (typeof hackathon.organizer === 'object') {
-          return hackathon.organizer.username === parsedUserData.username;
+        if (!currentUser) {
+          setIsLoading(false);
+          return;
         }
         
-        return false;
-      });
-      
-      console.log("Filtered created hackathons:", createdHackathonsData);
-      setCreatedHackathons(createdHackathonsData);
-    } else {
-      // If no hackathons data exists, initialize with empty array
-      localStorage.setItem("hackmap-hackathons", JSON.stringify([]));
-    }
-    
-    setIsLoading(false);
+        console.log("Current user data:", currentUser);
+        
+        // Get all hackathons from Supabase
+        const allHackathons = await getAllHackathons();
+        console.log("All hackathons:", allHackathons);
+        
+        // Filter registered hackathons (if any registrations exist)
+        const userRegisteredHackathonsIds = currentUser?.registered_hackathons || [];
+        const registeredHackathonsData = allHackathons.filter((hackathon) => 
+          userRegisteredHackathonsIds.includes(hackathon.id)
+        );
+        
+        console.log("User registered hackathons:", registeredHackathonsData);
+        setRegisteredHackathons(registeredHackathonsData);
+        
+        // Filter hackathons created by this user
+        const createdHackathonsData = allHackathons.filter((hackathon) => 
+          hackathon.organizer_id === currentUser.id
+        );
+        
+        console.log("User created hackathons:", createdHackathonsData);
+        setCreatedHackathons(createdHackathonsData);
+      } catch (error) {
+        console.error("Error loading hackathons:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load hackathons",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [toast]);
-
-  // Helper function to safely render the organizer
-  const renderOrganizer = (organizer) => {
-    if (!organizer) return "Unknown";
-    if (typeof organizer === 'object') return organizer.username;
-    return organizer;
-  };
-
-  // Handle the storage event to update data when localStorage changes
-  useEffect(() => {
-    const handleStorageChange = () => {
-      console.log("Storage change detected, updating hackathons");
-      
-      // Get updated user data
-      const updatedUserData = localStorage.getItem("hackmap-user");
-      if (!updatedUserData) return;
-      
-      const parsedUserData = JSON.parse(updatedUserData);
-      setUserData(parsedUserData);
-      
-      // Get updated hackathons
-      const hackathonsData = localStorage.getItem("hackmap-hackathons");
-      if (!hackathonsData) return;
-      
-      const allHackathons = JSON.parse(hackathonsData);
-      
-      // Update registered hackathons
-      const userRegisteredHackathons = parsedUserData.registeredHackathons || [];
-      const registeredHackathonsData = allHackathons.filter((hackathon) => 
-        userRegisteredHackathons && userRegisteredHackathons.includes(hackathon.id)
-      );
-      setRegisteredHackathons(registeredHackathonsData);
-      
-      // Update created hackathons
-      const createdHackathonsData = allHackathons.filter((hackathon) => {
-        if (!hackathon.organizer) return false;
-        
-        if (typeof hackathon.organizer === 'string') {
-          return hackathon.organizer === parsedUserData.username;
-        } else if (typeof hackathon.organizer === 'object') {
-          return hackathon.organizer.username === parsedUserData.username;
-        }
-        
-        return false;
-      });
-      setCreatedHackathons(createdHackathonsData);
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
 
   if (isLoading) {
     return (
@@ -162,7 +102,7 @@ const MyHackathons = () => {
                   <CardHeader className="pt-4 pb-2 px-4">
                     <div className="flex items-center space-x-2">
                       <Calendar className="h-6 w-6 text-hackmap-purple" />
-                      <CardTitle>{hackathon.title}</CardTitle>
+                      <CardTitle>{hackathon.name}</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent className="p-4">
@@ -170,13 +110,8 @@ const MyHackathons = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-purple/10 text-hackmap-purple">
-                          {new Date(hackathon.startDate).toLocaleDateString()} - {new Date(hackathon.endDate).toLocaleDateString()}
+                          {new Date(hackathon.start_date).toLocaleDateString()} - {new Date(hackathon.end_date).toLocaleDateString()}
                         </span>
-                        {hackathon.tags?.map((tag: string) => (
-                          <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-purple/5 text-hackmap-purple/90">
-                            {tag}
-                          </span>
-                        ))}
                       </div>
                       <Button asChild variant="outline">
                         <Link to={`/hackathons/${hackathon.id}`}>View Hackathon</Link>
@@ -208,7 +143,7 @@ const MyHackathons = () => {
               <CardHeader className="pt-4 pb-2 px-4">
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-6 w-6 text-hackmap-purple" />
-                  <CardTitle>{hackathon.title}</CardTitle>
+                  <CardTitle>{hackathon.name}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="p-4">
@@ -216,13 +151,8 @@ const MyHackathons = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-purple/10 text-hackmap-purple">
-                      {new Date(hackathon.startDate).toLocaleDateString()} - {new Date(hackathon.endDate).toLocaleDateString()}
+                      {new Date(hackathon.start_date).toLocaleDateString()} - {new Date(hackathon.end_date).toLocaleDateString()}
                     </span>
-                    {hackathon.tags?.map((tag: string) => (
-                      <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-purple/5 text-hackmap-purple/90">
-                        {tag}
-                      </span>
-                    ))}
                   </div>
                   <Button asChild variant="outline">
                     <Link to={`/hackathons/${hackathon.id}`}>View Hackathon</Link>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -54,7 +53,6 @@ const TeamCreate = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         uiToast({
-          title: "Not logged in",
           description: "You must be logged in to create a team",
           variant: "destructive",
         });
@@ -129,7 +127,7 @@ const TeamCreate = () => {
     
     // Generate unique invite code
     generateInviteCode();
-  }, [toast, navigate, uiToast]);
+  }, [navigate, uiToast]);
   
   // Generate a random invite code
   const generateInviteCode = () => {
@@ -149,10 +147,7 @@ const TeamCreate = () => {
       setShowCopied(false);
     }, 2000);
     
-    toast({
-      title: "Code Copied",
-      description: "Invite code copied to clipboard",
-    });
+    toast.success("Invite code copied to clipboard");
   };
 
   useEffect(() => {
@@ -199,7 +194,6 @@ const TeamCreate = () => {
 
     if (!userExists) {
       uiToast({
-        title: "User not found",
         description: `No user with username "${usernameToInvite}" exists`,
         variant: "destructive",
       });
@@ -216,10 +210,7 @@ const TeamCreate = () => {
     if (!invitedUsers.includes(username)) {
       setInvitedUsers([...invitedUsers, username]);
       
-      toast({
-        title: "User Invited",
-        description: `${username} has been added to invitations`,
-      });
+      toast.success(`${username} has been added to invitations`);
     }
   };
 
@@ -230,7 +221,6 @@ const TeamCreate = () => {
   const handleCreateTeam = async () => {
     if (!selectedHackathonId) {
       uiToast({
-        title: "Missing hackathon",
         description: "Please select a hackathon for your team",
         variant: "destructive",
       });
@@ -239,7 +229,6 @@ const TeamCreate = () => {
 
     if (!teamName) {
       uiToast({
-        title: "Missing team name",
         description: "Please provide a name for your team",
         variant: "destructive",
       });
@@ -248,7 +237,6 @@ const TeamCreate = () => {
 
     if (!currentUser) {
       uiToast({
-        title: "Not logged in",
         description: "You must be logged in to create a team",
         variant: "destructive",
       });
@@ -312,10 +300,7 @@ const TeamCreate = () => {
         throw new Error(error?.message || "Failed to create team");
       }
       
-      toast({
-        title: "Team created",
-        description: `Your team ${teamName} has been created successfully`,
-      });
+      toast.success(`Your team ${teamName} has been created successfully`);
 
       navigate("/teams");
     } catch (error) {

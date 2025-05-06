@@ -11,6 +11,13 @@ export { supabase };
 // Check if supabase configuration is valid
 const isSupabaseConfigured = true; // We're now using the configured client
 
+// Initialize local storage for fallback (used when Supabase is not available)
+export const initializeLocalStorage = () => {
+  console.info("Initializing local storage fallback...");
+  // This is just a placeholder function to maintain compatibility
+  // with existing code. We're fully using Supabase now.
+};
+
 // Initialize database tables if needed
 export const initializeDatabase = async () => {
   console.info("Checking database tables...");

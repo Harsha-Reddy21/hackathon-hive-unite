@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -19,8 +18,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { sendTeamInviteEmail, sendJoinRequestEmail } from "@/utils/emailService";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 import { Json } from "@/integrations/supabase/types";
 
 interface TeamMember {
@@ -101,6 +99,21 @@ const isArrayOfJoinRequests = (value: any): value is JoinRequest[] => {
     'username' in item);
 };
 
+// Helper function to parse JSON strings or return the original object
+const parseJsonField = <T,>(field: string | Json | null | undefined, defaultValue: T): T => {
+  if (!field) return defaultValue;
+  
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field) as T;
+    } catch (e) {
+      return defaultValue;
+    }
+  }
+  
+  return field as unknown as T;
+};
+
 const Teams = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [teams, setTeams] = useState<Team[]>([]);
@@ -123,6 +136,8 @@ const Teams = () => {
         const { data: { user } } = await supabase.auth.getUser();
         console.log("Current user:", user);
         
+        let userProfile = null;
+        
         if (user) {
           // Get additional user data from the profiles table
           const { data: profile } = await supabase
@@ -131,6 +146,7 @@ const Teams = () => {
             .eq('id', user.id)
             .maybeSingle();
             
+          userProfile = profile;
           setCurrentUser({ ...user, ...profile });
         }
         
@@ -150,67 +166,24 @@ const Teams = () => {
         // Normalize data to handle both DB field names and client-side field names
         const normalizedTeams = teamsData.map((team: SupabaseTeam) => {
           // Parse JSON fields that may be returned as strings from the database
-          let members: TeamMember[] = [];
-          try {
-            if (typeof team.members === 'string') {
-              members = JSON.parse(team.members as string);
-            } else if (team.members && Array.isArray(team.members)) {
-              members = team.members as unknown as TeamMember[];
-            } else if (team.members && typeof team.members === 'object') {
-              members = team.members as unknown as TeamMember[];
-            }
-          } catch (e) {
-            members = [];
-          }
-
-          let skills: string[] = [];
-          try {
-            if (typeof team.skills === 'string') {
-              skills = JSON.parse(team.skills as string);
-            } else if (team.skills && Array.isArray(team.skills)) {
-              skills = team.skills as unknown as string[];
-            } else if (team.skills && typeof team.skills === 'object') {
-              skills = team.skills as unknown as string[];
-            }
-          } catch (e) {
-            skills = [];
-          }
-          
-          let invitations: Invitation[] = [];
-          try {
-            if (typeof team.invitations === 'string') {
-              invitations = JSON.parse(team.invitations as string);
-            } else if (team.invitations && Array.isArray(team.invitations)) {
-              invitations = team.invitations as unknown as Invitation[];
-            } else if (team.invitations && typeof team.invitations === 'object') {
-              invitations = team.invitations as unknown as Invitation[];
-            }
-          } catch (e) {
-            invitations = [];
-          }
-          
-          let joinRequests: JoinRequest[] = [];
-          try {
-            if (typeof team.join_requests === 'string') {
-              joinRequests = JSON.parse(team.join_requests as string);
-            } else if (team.join_requests && Array.isArray(team.join_requests)) {
-              joinRequests = team.join_requests as unknown as JoinRequest[];
-            } else if (team.join_requests && typeof team.join_requests === 'object') {
-              joinRequests = team.join_requests as unknown as JoinRequest[];
-            }
-          } catch (e) {
-            joinRequests = [];
-          }
+          const membersArray = parseJsonField<TeamMember[]>(team.members, []);
+          const skillsArray = parseJsonField<string[]>(team.skills, []);
+          const invitationsArray = parseJsonField<Invitation[]>(team.invitations, []);
+          const joinRequestsArray = parseJsonField<JoinRequest[]>(team.join_requests, []);
           
           const normalizedTeam: Team = {
-            ...team,
-            members: members,
-            membersCount: team.members_count || members.length || 0,
+            id: team.id,
+            name: team.name,
+            hackathon_id: team.hackathon_id,
+            hackathon_name: team.hackathon_name,
+            description: team.description || '',
+            members: membersArray,
+            membersCount: team.members_count || membersArray.length || 0,
             maxMembers: team.max_members || 5,
             inviteCode: team.invite_code,
-            skills: skills,
-            invitations: invitations,
-            joinRequests: joinRequests
+            skills: skillsArray,
+            invitations: invitationsArray,
+            joinRequests: joinRequestsArray
           };
           
           return normalizedTeam;
@@ -219,14 +192,13 @@ const Teams = () => {
         setTeams(normalizedTeams);
         
         // Check for invitations for this user
-        if (user) {
+        if (user && userProfile) {
           const invitations = [];
           
           for (const team of normalizedTeams) {
-            const userInvitations = team.invitations;
-            if (Array.isArray(userInvitations)) {
-              const userInvitation = userInvitations.find(
-                (inv: Invitation) => inv.username === profile?.username && inv.status === "pending"
+            if (Array.isArray(team.invitations)) {
+              const userInvitation = team.invitations.find(
+                (inv) => inv.username === userProfile.username && inv.status === "pending"
               );
               
               if (userInvitation) {
@@ -298,7 +270,6 @@ const Teams = () => {
   const handleJoinTeamRequest = async (team: Team) => {
     if (!currentUser) {
       uiToast({
-        title: "Authentication Required",
         description: "Please log in to join teams",
         variant: "destructive",
       });
@@ -308,7 +279,6 @@ const Teams = () => {
     // Check if user is already a member of this team
     if (Array.isArray(team.members) && team.members.some(member => member.id === currentUser.id)) {
       uiToast({
-        title: "Already a Member",
         description: "You are already a member of this team",
         variant: "destructive",
       });
@@ -318,7 +288,6 @@ const Teams = () => {
     // Check if the team is full
     if (team.membersCount >= team.maxMembers) {
       uiToast({
-        title: "Team Full",
         description: "This team has reached its maximum number of members",
         variant: "destructive",
       });
@@ -341,23 +310,11 @@ const Teams = () => {
       }
       
       // Parse join_requests if needed
-      let joinRequests: JoinRequest[] = [];
-      try {
-        if (typeof latestTeam.join_requests === 'string') {
-          joinRequests = JSON.parse(latestTeam.join_requests as string);
-        } else if (latestTeam.join_requests && Array.isArray(latestTeam.join_requests)) {
-          joinRequests = latestTeam.join_requests as unknown as JoinRequest[];
-        } else if (latestTeam.join_requests && typeof latestTeam.join_requests === 'object') {
-          joinRequests = latestTeam.join_requests as unknown as JoinRequest[];
-        }
-      } catch (e) {
-        joinRequests = [];
-      }
+      const joinRequests = parseJsonField<JoinRequest[]>(latestTeam.join_requests, []);
       
       // Check if already requested
       if (joinRequests.some((req: JoinRequest) => req.userId === currentUser.id)) {
         uiToast({
-          title: "Request Already Sent",
           description: "You have already requested to join this team",
           variant: "destructive",
         });
@@ -394,26 +351,15 @@ const Teams = () => {
       setTeams(updatedTeams);
       
       // Find team leader to send email notification
-      if (Array.isArray(team.members)) {
-        const teamLeader = team.members.find(member => member.role === "leader" || member.role === "Team Lead");
-        
-        if (teamLeader) {
-          // Send email notification to team leader
-          try {
-            await sendJoinRequestEmail(
-              teamLeader.username.includes('@') ? teamLeader.username : `${teamLeader.username}@example.com`,
-              currentUser.username,
-              team.name
-            );
-          } catch (emailError) {
-            console.error("Error sending email notification:", emailError);
-            // Continue even if email fails
-          }
-        }
+      const teamMembers = parseJsonField<TeamMember[]>(latestTeam.members, []);
+      const teamLeader = teamMembers.find(member => member.role === "leader" || member.role === "Team Lead");
+      
+      if (teamLeader) {
+        // In a real app, you would send an email notification here
+        console.log("Would send email to team leader:", teamLeader);
       }
       
       uiToast({
-        title: "Request Sent!",
         description: `Your request to join ${team.name} has been sent to the team leader.`,
       });
     } catch (err) {
@@ -439,33 +385,9 @@ const Teams = () => {
         return;
       }
       
-      // Parse invitations if needed
-      let invitations: Invitation[] = [];
-      try {
-        if (typeof team.invitations === 'string') {
-          invitations = JSON.parse(team.invitations as string);
-        } else if (team.invitations && Array.isArray(team.invitations)) {
-          invitations = team.invitations as unknown as Invitation[];
-        } else if (team.invitations && typeof team.invitations === 'object') {
-          invitations = team.invitations as unknown as Invitation[];
-        }
-      } catch (e) {
-        invitations = [];
-      }
-      
-      // Parse members if needed
-      let members: TeamMember[] = [];
-      try {
-        if (typeof team.members === 'string') {
-          members = JSON.parse(team.members as string);
-        } else if (team.members && Array.isArray(team.members)) {
-          members = team.members as unknown as TeamMember[];
-        } else if (team.members && typeof team.members === 'object') {
-          members = team.members as unknown as TeamMember[];
-        }
-      } catch (e) {
-        members = [];
-      }
+      // Parse fields
+      const invitations = parseJsonField<Invitation[]>(team.invitations, []);
+      const members = parseJsonField<TeamMember[]>(team.members, []);
       
       // Find and update the invitation
       const updatedInvitations = invitations.map((inv: Invitation) => {
@@ -536,19 +458,8 @@ const Teams = () => {
         return;
       }
       
-      // Parse invitations if needed
-      let invitations: Invitation[] = [];
-      try {
-        if (typeof team.invitations === 'string') {
-          invitations = JSON.parse(team.invitations as string);
-        } else if (team.invitations && Array.isArray(team.invitations)) {
-          invitations = team.invitations as unknown as Invitation[];
-        } else if (team.invitations && typeof team.invitations === 'object') {
-          invitations = team.invitations as unknown as Invitation[];
-        }
-      } catch (e) {
-        invitations = [];
-      }
+      // Parse invitations
+      const invitations = parseJsonField<Invitation[]>(team.invitations, []);
       
       // Find and update the invitation
       const updatedInvitations = invitations.map((inv: Invitation) => {
@@ -586,7 +497,6 @@ const Teams = () => {
   const handleJoinByCode = async () => {
     if (!currentUser) {
       uiToast({
-        title: "Not Logged In",
         description: "Please log in to join a team",
         variant: "destructive",
       });
@@ -618,19 +528,8 @@ const Teams = () => {
       
       const team = matchingTeams[0] as SupabaseTeam;
       
-      // Parse members if needed
-      let members: TeamMember[] = [];
-      try {
-        if (typeof team.members === 'string') {
-          members = JSON.parse(team.members as string);
-        } else if (team.members && Array.isArray(team.members)) {
-          members = team.members as unknown as TeamMember[];
-        } else if (team.members && typeof team.members === 'object') {
-          members = team.members as unknown as TeamMember[];
-        }
-      } catch (e) {
-        members = [];
-      }
+      // Parse members
+      const members = parseJsonField<TeamMember[]>(team.members, []);
       
       // Check if user is already a member
       if (members.some(member => member.id === currentUser.id)) {

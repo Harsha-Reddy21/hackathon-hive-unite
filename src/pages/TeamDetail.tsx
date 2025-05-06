@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -9,15 +10,38 @@ import { Separator } from "@/components/ui/separator";
 import { ChevronRight, Users, Lightbulb, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getTeamById, getCurrentUser, updateTeamInStorage } from "@/utils/storageUtils";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
+import { Json } from "@/integrations/supabase/types";
 
-// Sample team data for fallback
-const mockTeamMembers = [
-  { id: 1, name: "Alex Johnson", role: "Team Lead", skills: ["Frontend", "UX/UI", "React"], avatar: null },
-  { id: 2, name: "Jamie Smith", role: "Backend Developer", skills: ["Node.js", "Database", "API"], avatar: null },
-  { id: 3, name: "Taylor Brown", role: "UI/UX Designer", skills: ["Figma", "Prototyping", "User Research"], avatar: null },
-  { id: 4, name: "Jordan Lee", role: "Data Scientist", skills: ["Python", "Machine Learning", "Data Visualization"], avatar: null }
-];
+interface TeamMember {
+  id: string;
+  username: string;
+  role: string;
+  avatar?: string;
+  name?: string;
+}
+
+interface JoinRequest {
+  id: string;
+  userId: string;
+  username: string;
+  requestDate: string;
+}
+
+// Helper function to parse JSON fields
+const parseJsonField = <T,>(field: string | Json | null | undefined, defaultValue: T): T => {
+  if (!field) return defaultValue;
+  
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field) as T;
+    } catch (e) {
+      return defaultValue;
+    }
+  }
+  
+  return field as unknown as T;
+};
 
 const TeamDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -64,17 +88,27 @@ const TeamDetail = () => {
         const teamData = await getTeamById(id);
         
         if (teamData) {
-          setTeam(teamData);
+          // Parse JSON fields
+          const parsedMembers = parseJsonField<TeamMember[]>(teamData.members, []);
+          const parsedJoinRequests = parseJsonField<JoinRequest[]>(teamData.join_requests, []);
+          
+          const enrichedTeam = {
+            ...teamData,
+            members: parsedMembers,
+            joinRequests: parsedJoinRequests
+          };
+          
+          setTeam(enrichedTeam);
           
           // Check if the current user is a member of this team
           if (userData) {
-            const userIsMember = teamData.members.some((member: any) => 
+            const userIsMember = parsedMembers.some((member: TeamMember) => 
               member.id === userData.id || member.username === userData.username
             );
             setIsMember(userIsMember);
             
             // Check if user has already requested to join
-            const hasAlreadyRequested = teamData.joinRequests?.some((request: any) =>
+            const hasAlreadyRequested = parsedJoinRequests.some((request: JoinRequest) =>
               request.userId === userData.id
             );
             setHasRequested(Boolean(hasAlreadyRequested));
@@ -91,7 +125,6 @@ const TeamDetail = () => {
   const handleJoinRequest = async () => {
     if (!isLoggedIn) {
       toast({
-        title: "Login Required",
         description: "Please login to join this team",
         variant: "destructive",
       });
@@ -103,12 +136,14 @@ const TeamDetail = () => {
     try {
       setHasRequested(true);
       
+      // Get existing join requests
+      const existingRequests = parseJsonField<JoinRequest[]>(team.join_requests, []);
+      
       // Update team in database with join request
-      const joinRequests = team.joinRequests || [];
       const updatedTeam = {
         ...team,
-        joinRequests: [
-          ...joinRequests,
+        join_requests: [
+          ...existingRequests,
           {
             id: `request-${Date.now()}`,
             userId: currentUser.id,
@@ -121,7 +156,6 @@ const TeamDetail = () => {
       await updateTeamInStorage(updatedTeam);
       
       toast({
-        title: "Request Sent",
         description: "Your request to join the team has been sent to the team leader.",
       });
       
@@ -131,7 +165,6 @@ const TeamDetail = () => {
     } catch (error) {
       console.error("Error sending join request:", error);
       toast({
-        title: "Error",
         description: "Failed to send join request. Please try again.",
         variant: "destructive",
       });
@@ -143,26 +176,26 @@ const TeamDetail = () => {
     if (!team || !currentUser) return;
     
     try {
+      const members = parseJsonField<TeamMember[]>(team.members, []);
+      
       // Remove user from team members
       const updatedTeam = {
         ...team,
-        members: team.members.filter((member: any) => 
+        members: members.filter((member: TeamMember) => 
           member.id !== currentUser.id && member.username !== currentUser.username
         ),
-        membersCount: team.membersCount > 0 ? team.membersCount - 1 : 0
+        members_count: team.members_count > 0 ? team.members_count - 1 : 0
       };
       
       await updateTeamInStorage(updatedTeam);
       
       setIsMember(false);
       toast({
-        title: "Team Left",
         description: "You have successfully left the team.",
       });
     } catch (error) {
       console.error("Error leaving team:", error);
       toast({
-        title: "Error",
         description: "Failed to leave team. Please try again.",
         variant: "destructive",
       });
@@ -184,6 +217,10 @@ const TeamDetail = () => {
     );
   }
 
+  // Parse members for rendering
+  const members = parseJsonField<TeamMember[]>(team.members, []);
+  const maxMembers = team.max_members || 5;
+
   return (
     <div>
       <Navbar />
@@ -199,8 +236,8 @@ const TeamDetail = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{team.name}</h1>
-            <Link to={`/hackathons/${team.hackathonId}`} className="text-hackmap-purple hover:underline">
-              {team.hackathonName}
+            <Link to={`/hackathons/${team.hackathon_id}`} className="text-hackmap-purple hover:underline">
+              {team.hackathon_name}
             </Link>
           </div>
           <div className="mt-4 md:mt-0">
@@ -216,9 +253,9 @@ const TeamDetail = () => {
               <Button 
                 className="bg-hackmap-purple hover:bg-hackmap-purple/90"
                 onClick={handleJoinRequest}
-                disabled={team.members.length >= team.maxMembers}
+                disabled={members.length >= maxMembers}
               >
-                {team.members.length >= team.maxMembers ? "Team Full" : "Request to Join"}
+                {members.length >= maxMembers ? "Team Full" : "Request to Join"}
               </Button>
             )}
           </div>
@@ -237,19 +274,19 @@ const TeamDetail = () => {
                 </p>
                 <h3 className="font-semibold mb-2">Required Skills</h3>
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {team.skills.map((skill: string) => (
+                  {parseJsonField<string[]>(team.skills, []).map((skill: string) => (
                     <Badge key={skill} variant="outline">{skill}</Badge>
                   ))}
                 </div>
                 <div className="flex items-center">
                   <div className="text-sm text-gray-500">
-                    <span className="font-medium">{team.members.length}</span>/{team.maxMembers} members
+                    <span className="font-medium">{members.length}</span>/{maxMembers} members
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            {team.projectIdea && (
+            {team.project_idea && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -257,12 +294,12 @@ const TeamDetail = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <h3 className="text-lg font-semibold mb-2">{team.projectIdea.title}</h3>
-                  <p className="text-gray-700 mb-4">{team.projectIdea.description}</p>
+                  <h3 className="text-lg font-semibold mb-2">{team.project_idea.title}</h3>
+                  <p className="text-gray-700 mb-4">{team.project_idea.description}</p>
                   
                   <h4 className="font-medium text-sm text-gray-500 mb-2">Tech Stack</h4>
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {team.projectIdea.techStack.map((tech: string, index: number) => (
+                    {team.project_idea.techStack && team.project_idea.techStack.map((tech: string, index: number) => (
                       <Badge key={index} variant="secondary">{tech}</Badge>
                     ))}
                   </div>
@@ -271,7 +308,7 @@ const TeamDetail = () => {
                   <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
                     <div 
                       className="bg-hackmap-purple h-2.5 rounded-full" 
-                      style={{ width: `${team.projectIdea.progress}%` }}
+                      style={{ width: `${team.project_idea.progress}%` }}
                     ></div>
                   </div>
                   
@@ -296,23 +333,23 @@ const TeamDetail = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {team.members.map((member: any) => (
+                  {members.map((member: TeamMember) => (
                     <div key={member.id} className="flex items-center">
                       <Avatar className="h-10 w-10 mr-3">
                         <AvatarImage src={member.avatar} />
                         <AvatarFallback>
-                          {member && member.name ? member.name.charAt(0) : "?"}
+                          {member.username ? member.username.charAt(0).toUpperCase() : "?"}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{member.name || "Unknown"}</p>
+                        <p className="font-medium">{member.name || member.username || "Unknown"}</p>
                         <p className="text-xs text-gray-500">{member.role}</p>
                       </div>
                     </div>
                   ))}
                   
                   {/* Empty slots */}
-                  {Array(team.maxMembers - team.members.length).fill(0).map((_, i) => (
+                  {Array(maxMembers - members.length).fill(0).map((_, i) => (
                     <div key={`empty-${i}`} className="flex items-center text-gray-400">
                       <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
                         <Users className="h-5 w-5" />
