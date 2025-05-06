@@ -17,7 +17,7 @@ export interface Hackathon {
   participantCount?: number;
   description?: string;
   location?: string;
-  organizer?: string;
+  organizer?: string | { id: string; username: string };
   website?: string;
   teams?: string[];
   sponsors?: string[];

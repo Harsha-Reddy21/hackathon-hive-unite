@@ -55,7 +55,11 @@ const HackathonDetail = () => {
         setHackathon({
           ...foundHackathon,
           location: foundHackathon.location || "San Francisco, CA",
-          organizer: foundHackathon.organizer || "TechFoundation",
+          organizer: foundHackathon.organizer ? 
+            (typeof foundHackathon.organizer === 'object' ? 
+              foundHackathon.organizer.username || "TechFoundation" : 
+              foundHackathon.organizer) : 
+            "TechFoundation",
           description: foundHackathon.description || 
             "Join us for an exciting hackathon focused on " + foundHackathon.theme + 
             ". Teams will collaborate to build innovative solutions addressing real-world challenges. " +
@@ -267,8 +271,8 @@ const HackathonDetail = () => {
                     </p>
                     <h3 className="font-semibold text-lg mb-2">Sponsors</h3>
                     <div className="flex flex-wrap gap-4 mb-6">
-                      {hackathon.sponsors && hackathon.sponsors.map((sponsor: string) => (
-                        <div key={sponsor} className="px-4 py-2 bg-gray-100 rounded-md">
+                      {hackathon.sponsors && hackathon.sponsors.map((sponsor: string, idx: number) => (
+                        <div key={idx} className="px-4 py-2 bg-gray-100 rounded-md">
                           {sponsor}
                         </div>
                       ))}
@@ -289,7 +293,7 @@ const HackathonDetail = () => {
                     <div className="space-y-2">
                       <div>
                         <p className="text-sm font-medium">Registration Deadline</p>
-                        <p className="text-gray-600">{new Date(hackathon.startDate).toLocaleDateString()}</p>
+                        <p className="text-gray-600">{hackathon.registrationDeadline ? new Date(hackathon.registrationDeadline).toLocaleDateString() : new Date(hackathon.startDate).toLocaleDateString()}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium">Event Starts</p>
