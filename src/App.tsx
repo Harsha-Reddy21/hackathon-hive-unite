@@ -56,6 +56,21 @@ const initMockData = () => {
         maxMembers: 4,
         skills: ["Blockchain", "Smart Contracts", "Frontend", "Solidity"],
         inviteCode: "PIONEERS456"
+      },
+      {
+        id: "3",
+        name: "HealthTech Innovators",
+        hackathonName: "HealthTech Hackathon",
+        hackathonId: "3",
+        description: "Developing a mobile app that helps patients track medication and appointments.",
+        members: [
+          { id: "user-4", name: "Sam Wilson", username: "samw", role: "Team Lead" },
+          { id: "user-5", name: "Jordan Lee", username: "jlee", role: "UI Designer" }
+        ],
+        membersCount: 2,
+        maxMembers: 5,
+        skills: ["Healthcare", "Mobile Development", "UX Design"],
+        inviteCode: "HEALTH789"
       }
     ];
     localStorage.setItem("hackmap-teams", JSON.stringify(mockTeams));
@@ -71,7 +86,10 @@ const initMockData = () => {
         startDate: "2025-06-15",
         endDate: "2025-06-17",
         tags: ["AI", "Social Impact", "Machine Learning"],
-        location: "San Francisco, CA"
+        location: "San Francisco, CA",
+        prizes: ["$10,000 Grand Prize", "Mentorship Opportunities"],
+        participantCount: 250,
+        description: "Join us for 3 days of innovation as we explore how artificial intelligence can address pressing social challenges. Teams will collaborate to build solutions that make a positive impact on society. This event brings together developers, designers, and domain experts to create technology with purpose."
       },
       {
         id: "2",
@@ -80,7 +98,10 @@ const initMockData = () => {
         startDate: "2025-07-22",
         endDate: "2025-07-24",
         tags: ["Blockchain", "Web3", "DeFi"],
-        location: "New York, NY"
+        location: "New York, NY",
+        prizes: ["$15,000 in ETH", "Accelerator Program Access"],
+        participantCount: 320,
+        description: "Dive into the world of Web3 technologies in this exciting hackathon. Build innovative solutions using blockchain, smart contracts, and decentralized technologies. Whether you're an experienced blockchain developer or just getting started, this hackathon offers an opportunity to shape the future of digital ownership and transactions."
       },
       {
         id: "3",
@@ -89,7 +110,10 @@ const initMockData = () => {
         startDate: "2025-08-10",
         endDate: "2025-08-12",
         tags: ["Healthcare", "IoT", "Mobile"],
-        location: "Boston, MA"
+        location: "Boston, MA",
+        prizes: ["$8,000 in Cash Prizes", "Pilot Program with Hospitals"],
+        participantCount: 180,
+        description: "This hackathon focuses on technological solutions for healthcare challenges. From patient care to hospital operations, teams will develop innovative tools that can improve health outcomes and streamline medical processes. Join healthcare professionals, engineers, and designers to create the next generation of medical technology."
       }
     ];
     localStorage.setItem("hackmap-hackathons", JSON.stringify(mockHackathons));

@@ -6,77 +6,91 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockHackathons } from "@/data/hackathons";
 import { Calendar, MapPin, Trophy, Users, Clock, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const HackathonDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [hackathon, setHackathon] = useState<any | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem("hackmap-user");
-    if (userData) {
-      setIsLoggedIn(true);
+    const fetchData = async () => {
+      setIsLoading(true);
       
-      // Check if user is already registered for this hackathon
-      const parsedUserData = JSON.parse(userData);
-      const registeredHackathons = parsedUserData.registeredHackathons || [];
-      setIsRegistered(registeredHackathons.includes(id));
-    } else {
-      setIsLoggedIn(false);
-      setIsRegistered(false);
-    }
+      // Check if user is logged in
+      const userData = localStorage.getItem("hackmap-user");
+      if (userData) {
+        setIsLoggedIn(true);
+        
+        // Check if user is already registered for this hackathon
+        const parsedUserData = JSON.parse(userData);
+        const registeredHackathons = parsedUserData.registeredHackathons || [];
+        setIsRegistered(registeredHackathons.includes(id));
+      } else {
+        setIsLoggedIn(false);
+        setIsRegistered(false);
+      }
+      
+      // First check localStorage for hackathon data
+      const storedHackathons = localStorage.getItem("hackmap-hackathons");
+      let foundHackathon = null;
+      
+      if (storedHackathons) {
+        const parsedHackathons = JSON.parse(storedHackathons);
+        foundHackathon = parsedHackathons.find((h: any) => h.id === id);
+      }
+      
+      if (foundHackathon) {
+        // Add some additional data to the hackathon if needed
+        setHackathon({
+          ...foundHackathon,
+          location: foundHackathon.location || "San Francisco, CA",
+          organizer: foundHackathon.organizer || "TechFoundation",
+          description: foundHackathon.description || 
+            "Join us for an exciting hackathon focused on " + foundHackathon.theme + 
+            ". Teams will collaborate to build innovative solutions addressing real-world challenges. " +
+            "This event brings together developers, designers, and problem solvers for 48 hours of creativity and coding.",
+          schedule: foundHackathon.schedule || [
+            { time: "Day 1, 9:00 AM", activity: "Opening Ceremony" },
+            { time: "Day 1, 10:00 AM", activity: "Team Formation" },
+            { time: "Day 1, 12:00 PM", activity: "Lunch Break" },
+            { time: "Day 1, 1:00 PM", activity: "Hacking Begins" },
+            { time: "Day 2, 12:00 PM", activity: "Project Submission Deadline" },
+            { time: "Day 2, 2:00 PM", activity: "Judging" },
+            { time: "Day 2, 4:00 PM", activity: "Awards Ceremony" }
+          ],
+          prizes: foundHackathon.prizes || [
+            { place: "1st Place", reward: "$5,000 and mentorship opportunities" },
+            { place: "2nd Place", reward: "$2,500 and cloud credits" },
+            { place: "3rd Place", reward: "$1,000 and developer tools" },
+            { place: "Best UI/UX", reward: "$500" }
+          ],
+          sponsors: foundHackathon.sponsors || ["TechCorp", "DevTools Inc.", "CloudServices", "StartupLabs"]
+        });
+      } else {
+        console.error("Hackathon not found with ID:", id);
+        // After 1 second, redirect to 404 page
+        setTimeout(() => {
+          navigate('/hackathons');
+          toast({
+            title: "Hackathon not found",
+            description: "We couldn't find the hackathon you're looking for.",
+            variant: "destructive",
+          });
+        }, 1000);
+      }
+      
+      setIsLoading(false);
+    };
     
-    // First check localStorage for hackathon data
-    const storedHackathons = localStorage.getItem("hackmap-hackathons");
-    let foundHackathon = null;
-    
-    if (storedHackathons) {
-      const parsedHackathons = JSON.parse(storedHackathons);
-      foundHackathon = parsedHackathons.find((h: any) => h.id === id);
-    }
-    
-    // If not found in localStorage, check mock data
-    if (!foundHackathon) {
-      foundHackathon = mockHackathons.find(h => h.id === id);
-    }
-    
-    if (foundHackathon) {
-      // Add some additional data to the hackathon if needed
-      setHackathon({
-        ...foundHackathon,
-        location: foundHackathon.location || "San Francisco, CA",
-        organizer: foundHackathon.organizer || "TechFoundation",
-        description: foundHackathon.description || 
-          "Join us for an exciting hackathon focused on " + foundHackathon.theme + 
-          ". Teams will collaborate to build innovative solutions addressing real-world challenges. " +
-          "This event brings together developers, designers, and problem solvers for 48 hours of creativity and coding.",
-        schedule: foundHackathon.schedule || [
-          { time: "Day 1, 9:00 AM", activity: "Opening Ceremony" },
-          { time: "Day 1, 10:00 AM", activity: "Team Formation" },
-          { time: "Day 1, 12:00 PM", activity: "Lunch Break" },
-          { time: "Day 1, 1:00 PM", activity: "Hacking Begins" },
-          { time: "Day 2, 12:00 PM", activity: "Project Submission Deadline" },
-          { time: "Day 2, 2:00 PM", activity: "Judging" },
-          { time: "Day 2, 4:00 PM", activity: "Awards Ceremony" }
-        ],
-        prizes: foundHackathon.prizes || [
-          { place: "1st Place", reward: "$5,000 and mentorship opportunities" },
-          { place: "2nd Place", reward: "$2,500 and cloud credits" },
-          { place: "3rd Place", reward: "$1,000 and developer tools" },
-          { place: "Best UI/UX", reward: "$500" }
-        ],
-        sponsors: foundHackathon.sponsors || ["TechCorp", "DevTools Inc.", "CloudServices", "StartupLabs"]
-      });
-    } else {
-      console.error("Hackathon not found with ID:", id);
-    }
-  }, [id]);
+    fetchData();
+  }, [id, navigate, toast]);
 
   const handleRegister = () => {
     if (!isLoggedIn) {
@@ -127,6 +141,17 @@ const HackathonDetail = () => {
     });
   };
 
+  if (isLoading) {
+    return (
+      <div>
+        <Navbar />
+        <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Loading...</h1>
+        </div>
+      </div>
+    );
+  }
+
   if (!hackathon) {
     return (
       <div>
@@ -170,7 +195,7 @@ const HackathonDetail = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{hackathon.title}</h1>
             <p className="text-xl text-gray-600 mb-4">{hackathon.theme}</p>
             <div className="flex flex-wrap gap-3 mb-4">
-              {hackathon.tags.map((tag: string) => (
+              {hackathon.tags && hackathon.tags.map((tag: string) => (
                 <Badge key={tag} className="bg-hackmap-purple">{tag}</Badge>
               ))}
             </div>
@@ -235,7 +260,7 @@ const HackathonDetail = () => {
                     </p>
                     <h3 className="font-semibold text-lg mb-2">Sponsors</h3>
                     <div className="flex flex-wrap gap-4 mb-6">
-                      {hackathon.sponsors.map((sponsor: string) => (
+                      {hackathon.sponsors && hackathon.sponsors.map((sponsor: string) => (
                         <div key={sponsor} className="px-4 py-2 bg-gray-100 rounded-md">
                           {sponsor}
                         </div>
@@ -279,15 +304,21 @@ const HackathonDetail = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {hackathon.prizes.slice(0, 2).map((prize: any) => (
-                        <div key={prize.place}>
-                          <p className="text-sm font-medium">{prize.place}</p>
-                          <p className="text-gray-600">{prize.reward}</p>
-                        </div>
-                      ))}
-                      <Button variant="link" className="p-0 h-auto text-hackmap-purple">
-                        View All Prizes
-                      </Button>
+                      {Array.isArray(hackathon.prizes) && hackathon.prizes.length > 0 ? (
+                        <>
+                          {(typeof hackathon.prizes[0] === 'object' ? hackathon.prizes : hackathon.prizes.map(prize => ({ place: prize, reward: '' }))).slice(0, 2).map((prize: any, index: number) => (
+                            <div key={index}>
+                              <p className="text-sm font-medium">{prize.place || `Prize ${index+1}`}</p>
+                              <p className="text-gray-600">{prize.reward || prize}</p>
+                            </div>
+                          ))}
+                          <Button variant="link" className="p-0 h-auto text-hackmap-purple">
+                            View All Prizes
+                          </Button>
+                        </>
+                      ) : (
+                        <p className="text-gray-600">Prizes to be announced</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -302,7 +333,7 @@ const HackathonDetail = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {hackathon.schedule.map((item: any, index: number) => (
+                  {hackathon.schedule && hackathon.schedule.map((item: any, index: number) => (
                     <div key={index} className="flex">
                       <div className="w-1/4 font-medium">{item.time}</div>
                       <div className="w-3/4">{item.activity}</div>
@@ -320,14 +351,25 @@ const HackathonDetail = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {hackathon.prizes.map((prize: any, index: number) => (
-                    <Card key={index} className={index === 0 ? "border-2 border-yellow-400" : ""}>
-                      <CardContent className="pt-6">
-                        <h3 className="text-lg font-bold mb-2">{prize.place}</h3>
-                        <p className="text-gray-700">{prize.reward}</p>
+                  {Array.isArray(hackathon.prizes) && hackathon.prizes.length > 0 ? (
+                    (typeof hackathon.prizes[0] === 'object' ? hackathon.prizes : hackathon.prizes.map((prize, index) => ({ 
+                      place: `${index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : `${index+1}th`} Place`, 
+                      reward: prize 
+                    }))).map((prize: any, index: number) => (
+                      <Card key={index} className={index === 0 ? "border-2 border-yellow-400" : ""}>
+                        <CardContent className="pt-6">
+                          <h3 className="text-lg font-bold mb-2">{prize.place}</h3>
+                          <p className="text-gray-700">{prize.reward}</p>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <Card className="col-span-2">
+                      <CardContent className="pt-6 text-center py-12">
+                        <h3 className="text-lg font-semibold">Prizes to be announced</h3>
                       </CardContent>
                     </Card>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -11,9 +11,9 @@ export interface Hackathon {
   theme: string;
   startDate: string;
   endDate: string;
-  registrationDeadline: string;
-  prizes: string[];
-  tags: string[];
+  registrationDeadline?: string;
+  prizes?: string[];
+  tags?: string[];
   participantCount?: number;
 }
 
@@ -48,7 +48,7 @@ const HackathonCard = ({ hackathon }: HackathonCardProps) => {
         </div>
         <div className="flex items-center text-sm">
           <Award className="h-4 w-4 mr-2 text-hackmap-blue" />
-          <span>{hackathon.prizes.length > 0 ? hackathon.prizes[0] : "Prizes to be announced"}</span>
+          <span>{hackathon.prizes && hackathon.prizes.length > 0 ? hackathon.prizes[0] : "Prizes to be announced"}</span>
         </div>
         {hackathon.participantCount && (
           <div className="flex items-center text-sm">
@@ -60,7 +60,7 @@ const HackathonCard = ({ hackathon }: HackathonCardProps) => {
           <div className="flex items-center text-sm mr-2">
             <Tag className="h-4 w-4 mr-1 text-gray-500" />
           </div>
-          {hackathon.tags.map((tag) => (
+          {hackathon.tags && hackathon.tags.map((tag) => (
             <Badge key={tag} variant="outline" className="bg-muted text-muted-foreground">
               {tag}
             </Badge>
