@@ -21,6 +21,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { sendTeamInviteEmail, sendJoinRequestEmail } from "@/utils/emailService";
 import { getAllTeams, getCurrentUser, updateTeamInStorage, initializeLocalStorage, supabase } from "@/utils/storageUtils";
+import { Json } from "@/integrations/supabase/types";
 
 interface TeamMember {
   id: string;
@@ -62,6 +63,23 @@ interface Team {
   invite_code?: string; // For database mapping
   createdAt?: string;
   created_at?: string; // For database mapping
+}
+
+interface SupabaseTeam {
+  id: string;
+  name: string;
+  hackathon_id?: string;
+  hackathon_name?: string;
+  description: string;
+  members?: Json;
+  members_count?: number;
+  max_members?: number;
+  skills?: Json;
+  join_requests?: Json;
+  invitations?: Json;
+  invite_code?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Type guard functions to check array properties
@@ -111,56 +129,66 @@ const Teams = () => {
         console.log("Teams loaded:", teamsData);
         
         // Normalize data to handle both DB field names and client-side field names
-        const normalizedTeams = teamsData.map((team: any) => {
+        const normalizedTeams = teamsData.map((team: SupabaseTeam) => {
           // Parse JSON fields that may be returned as strings from the database
-          let members = [];
+          let members: TeamMember[] = [];
           try {
-            members = typeof team.members === 'string' 
-              ? JSON.parse(team.members) 
-              : (Array.isArray(team.members) ? team.members : []);
+            if (typeof team.members === 'string') {
+              members = JSON.parse(team.members as string);
+            } else if (Array.isArray(team.members)) {
+              members = team.members as unknown as TeamMember[];
+            }
           } catch (e) {
             members = [];
           }
 
-          let skills = [];
+          let skills: string[] = [];
           try {
-            skills = typeof team.skills === 'string'
-              ? JSON.parse(team.skills)
-              : (Array.isArray(team.skills) ? team.skills : []);
+            if (typeof team.skills === 'string') {
+              skills = JSON.parse(team.skills as string);
+            } else if (Array.isArray(team.skills)) {
+              skills = team.skills as unknown as string[];
+            }
           } catch (e) {
             skills = [];
           }
           
-          let invitations = [];
+          let invitations: Invitation[] = [];
           try {
-            invitations = typeof team.invitations === 'string'
-              ? JSON.parse(team.invitations)
-              : (team.invitations || []);
+            if (typeof team.invitations === 'string') {
+              invitations = JSON.parse(team.invitations as string);
+            } else if (team.invitations) {
+              invitations = team.invitations as unknown as Invitation[];
+            }
           } catch (e) {
             invitations = [];
           }
           
-          let joinRequests = [];
+          let joinRequests: JoinRequest[] = [];
           try {
-            joinRequests = typeof team.join_requests === 'string'
-              ? JSON.parse(team.join_requests)
-              : (team.join_requests || []);
+            if (typeof team.join_requests === 'string') {
+              joinRequests = JSON.parse(team.join_requests as string);
+            } else if (team.join_requests) {
+              joinRequests = team.join_requests as unknown as JoinRequest[];
+            }
           } catch (e) {
             joinRequests = [];
           }
           
-          return {
+          const normalizedTeam: Team = {
             ...team,
             hackathonId: team.hackathon_id || team.hackathonId,
             hackathonName: team.hackathon_name || team.hackathonName,
             members: members,
-            membersCount: team.members_count || team.membersCount || members.length || 0,
-            maxMembers: team.max_members || team.maxMembers || 5,
+            membersCount: team.members_count || members.length || 0,
+            maxMembers: team.max_members || 5,
             inviteCode: team.invite_code || team.inviteCode,
             skills: skills,
             invitations: invitations,
             joinRequests: joinRequests
           };
+          
+          return normalizedTeam;
         });
         
         setTeams(normalizedTeams);
@@ -175,17 +203,18 @@ const Teams = () => {
           const invitations = [];
           
           for (const team of normalizedTeams) {
-            const teamInvitations = isArrayOfInvitations(team.invitations) ? team.invitations : [];
-            const userInvitation = teamInvitations.find(
-              (inv: Invitation) => inv.username === user.username && inv.status === "pending"
-            );
-            
-            if (userInvitation) {
-              invitations.push({
-                teamId: team.id,
-                teamName: team.name,
-                invitedAt: userInvitation.invitedAt
-              });
+            if (Array.isArray(team.invitations)) {
+              const userInvitation = team.invitations.find(
+                (inv: Invitation) => inv.username === user.username && inv.status === "pending"
+              );
+              
+              if (userInvitation) {
+                invitations.push({
+                  teamId: team.id,
+                  teamName: team.name,
+                  invitedAt: userInvitation.invitedAt
+                });
+              }
             }
           }
           
@@ -221,13 +250,19 @@ const Teams = () => {
   
   // Filter teams based on search query
   const filteredTeams = teams.filter(
-    (team) =>
-      team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      team.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (team.hackathonName || team.hackathon_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (Array.isArray(team.skills) && team.skills.some((skill) => 
+    (team) => {
+      const nameMatch = team.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const descMatch = team.description.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const hackathonNameStr = (team.hackathonName || team.hackathon_name || "");
+      const hackathonMatch = hackathonNameStr.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const skillsMatch = Array.isArray(team.skills) && team.skills.some((skill) => 
         typeof skill === 'string' && skill.toLowerCase().includes(searchQuery.toLowerCase())
-      ))
+      );
+      
+      return nameMatch || descMatch || hackathonMatch || skillsMatch;
+    }
   );
 
   const handleJoinTeamRequest = async (team: Team) => {
@@ -275,11 +310,13 @@ const Teams = () => {
       }
       
       // Parse join_requests if needed
-      let joinRequests = [];
+      let joinRequests: JoinRequest[] = [];
       try {
-        joinRequests = typeof latestTeam.join_requests === 'string' 
-          ? JSON.parse(latestTeam.join_requests) 
-          : (Array.isArray(latestTeam.join_requests) ? latestTeam.join_requests : []);
+        if (typeof latestTeam.join_requests === 'string') {
+          joinRequests = JSON.parse(latestTeam.join_requests as string);
+        } else if (Array.isArray(latestTeam.join_requests)) {
+          joinRequests = latestTeam.join_requests as unknown as JoinRequest[];
+        }
       } catch (e) {
         joinRequests = [];
       }
@@ -325,20 +362,21 @@ const Teams = () => {
       setTeams(updatedTeams);
       
       // Find team leader to send email notification
-      const teamMembers = Array.isArray(team.members) ? team.members : [];
-      const teamLeader = teamMembers.find(member => member.role === "leader" || member.role === "Team Lead");
-      
-      if (teamLeader) {
-        // Send email notification to team leader
-        try {
-          await sendJoinRequestEmail(
-            teamLeader.username.includes('@') ? teamLeader.username : `${teamLeader.username}@example.com`,
-            currentUser.username,
-            team.name
-          );
-        } catch (emailError) {
-          console.error("Error sending email notification:", emailError);
-          // Continue even if email fails
+      if (Array.isArray(team.members)) {
+        const teamLeader = team.members.find(member => member.role === "leader" || member.role === "Team Lead");
+        
+        if (teamLeader) {
+          // Send email notification to team leader
+          try {
+            await sendJoinRequestEmail(
+              teamLeader.username.includes('@') ? teamLeader.username : `${teamLeader.username}@example.com`,
+              currentUser.username,
+              team.name
+            );
+          } catch (emailError) {
+            console.error("Error sending email notification:", emailError);
+            // Continue even if email fails
+          }
         }
       }
       
@@ -369,21 +407,25 @@ const Teams = () => {
       }
       
       // Parse invitations if needed
-      let invitations = [];
+      let invitations: Invitation[] = [];
       try {
-        invitations = typeof team.invitations === 'string' 
-          ? JSON.parse(team.invitations) 
-          : (Array.isArray(team.invitations) ? team.invitations : []);
+        if (typeof team.invitations === 'string') {
+          invitations = JSON.parse(team.invitations as string);
+        } else if (team.invitations) {
+          invitations = team.invitations as unknown as Invitation[];
+        }
       } catch (e) {
         invitations = [];
       }
       
       // Parse members if needed
-      let members = [];
+      let members: TeamMember[] = [];
       try {
-        members = typeof team.members === 'string' 
-          ? JSON.parse(team.members) 
-          : (Array.isArray(team.members) ? team.members : []);
+        if (typeof team.members === 'string') {
+          members = JSON.parse(team.members as string);
+        } else if (team.members) {
+          members = team.members as unknown as TeamMember[];
+        }
       } catch (e) {
         members = [];
       }
@@ -407,15 +449,14 @@ const Teams = () => {
       ];
       
       // Update the team in the database
-      const { data: updatedTeam, error } = await supabase
+      const { error } = await supabase
         .from('teams')
         .update({ 
           invitations: updatedInvitations,
           members: updatedMembers,
           members_count: (team.members_count || 0) + 1
         })
-        .eq('id', teamId)
-        .select();
+        .eq('id', teamId);
       
       if (error) {
         console.error("Error accepting invitation:", error);
@@ -458,11 +499,13 @@ const Teams = () => {
       }
       
       // Parse invitations if needed
-      let invitations = [];
+      let invitations: Invitation[] = [];
       try {
-        invitations = typeof team.invitations === 'string' 
-          ? JSON.parse(team.invitations) 
-          : (Array.isArray(team.invitations) ? team.invitations : []);
+        if (typeof team.invitations === 'string') {
+          invitations = JSON.parse(team.invitations as string);
+        } else if (team.invitations) {
+          invitations = team.invitations as unknown as Invitation[];
+        }
       } catch (e) {
         invitations = [];
       }
@@ -533,14 +576,16 @@ const Teams = () => {
         return;
       }
       
-      const team = matchingTeams[0];
+      const team = matchingTeams[0] as SupabaseTeam;
       
       // Parse members if needed
-      let members = [];
+      let members: TeamMember[] = [];
       try {
-        members = typeof team.members === 'string' 
-          ? JSON.parse(team.members) 
-          : (Array.isArray(team.members) ? team.members : []);
+        if (typeof team.members === 'string') {
+          members = JSON.parse(team.members as string);
+        } else if (team.members) {
+          members = team.members as unknown as TeamMember[];
+        }
       } catch (e) {
         members = [];
       }
@@ -568,14 +613,13 @@ const Teams = () => {
       ];
       
       // Update the team in the database
-      const { data: updatedTeam, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('teams')
         .update({ 
           members: updatedMembers,
           members_count: (team.members_count || 0) + 1
         })
-        .eq('id', team.id)
-        .select();
+        .eq('id', team.id);
       
       if (updateError) {
         console.error("Error joining team:", updateError);

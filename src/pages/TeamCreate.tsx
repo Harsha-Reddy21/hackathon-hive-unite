@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, X, Users, Copy, Check, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { addTeamToStorage } from "@/utils/storageUtils";
 
 interface Hackathon {
   id: string;
@@ -59,16 +61,42 @@ const TeamCreate = () => {
     }
     setCurrentUser(JSON.parse(userData));
 
-    // Load hackathons from localStorage
-    const hackathonsData = localStorage.getItem("hackmap-hackathons");
-    if (hackathonsData) {
-      const loadedHackathons = JSON.parse(hackathonsData);
-      const hackathonsForSelect = loadedHackathons.map((h: any) => ({
-        id: h.id,
-        title: h.title,
-      }));
-      setHackathons(hackathonsForSelect);
-    }
+    // Load hackathons from Supabase
+    const fetchHackathons = async () => {
+      try {
+        const { data: hackathonData, error } = await supabase
+          .from('hackathons')
+          .select('id, name');
+          
+        if (error) throw error;
+        
+        if (hackathonData) {
+          const hackathonsForSelect = hackathonData.map(h => ({
+            id: h.id,
+            title: h.name
+          }));
+          setHackathons(hackathonsForSelect);
+          
+          // Also update localStorage for backwards compatibility
+          localStorage.setItem("hackmap-hackathons", JSON.stringify(hackathonData));
+        }
+      } catch (err) {
+        console.error("Error fetching hackathons:", err);
+        
+        // Fallback to localStorage
+        const hackathonsData = localStorage.getItem("hackmap-hackathons");
+        if (hackathonsData) {
+          const loadedHackathons = JSON.parse(hackathonsData);
+          const hackathonsForSelect = loadedHackathons.map((h: any) => ({
+            id: h.id,
+            title: h.title || h.name,
+          }));
+          setHackathons(hackathonsForSelect);
+        }
+      }
+    };
+    
+    fetchHackathons();
     
     // Load all users for skill matching
     const usersData = localStorage.getItem("hackmap-users");
@@ -176,7 +204,7 @@ const TeamCreate = () => {
     setInvitedUsers(invitedUsers.filter(u => u !== username));
   };
 
-  const handleCreateTeam = () => {
+  const handleCreateTeam = async () => {
     if (!selectedHackathonId) {
       toast({
         title: "Missing hackathon",
@@ -208,56 +236,57 @@ const TeamCreate = () => {
     setIsLoading(true);
 
     try {
-      // Find hackathon details
-      const hackathonsData = localStorage.getItem("hackmap-hackathons");
-      const hackathons = hackathonsData ? JSON.parse(hackathonsData) : [];
-      const selectedHackathon = hackathons.find((h: any) => h.id === selectedHackathonId);
-
-      if (!selectedHackathon) {
+      // Find hackathon details for the selected hackathon
+      const { data: selectedHackathon, error: hackathonError } = await supabase
+        .from('hackathons')
+        .select('*')
+        .eq('id', selectedHackathonId)
+        .maybeSingle();
+      
+      if (hackathonError || !selectedHackathon) {
         throw new Error("Selected hackathon not found");
       }
 
-      // Create new team object
+      // Create new team object for Supabase
       const newTeam = {
-        id: `team-${Date.now()}`,
         name: teamName,
-        hackathonId: selectedHackathonId,
-        hackathonName: selectedHackathon.title,
+        hackathon_id: selectedHackathonId,
+        hackathon_name: selectedHackathon.name,
         description: teamDescription,
-        members: [
+        members: JSON.stringify([
           {
             id: currentUser.id,
             username: currentUser.username,
             role: "leader"
           }
-        ],
-        membersCount: 1,
-        maxMembers: parseInt(maxMembers, 10),
-        skills: skills.length > 0 ? skills : ["General"],
-        invitations: invitedUsers.map(username => ({
+        ]),
+        members_count: 1,
+        max_members: parseInt(maxMembers, 10),
+        skills: JSON.stringify(skills.length > 0 ? skills : ["General"]),
+        invitations: JSON.stringify(invitedUsers.map(username => ({
           username,
           invitedAt: new Date().toISOString(),
-          status: "pending" as "pending" | "accepted" | "declined"
-        })),
-        inviteCode: inviteCode,
-        createdAt: new Date().toISOString(),
+          status: "pending"
+        }))),
+        invite_code: inviteCode,
+        created_at: new Date().toISOString(),
       };
 
-      // Save to localStorage
-      const teamsData = localStorage.getItem("hackmap-teams");
-      const teams = teamsData ? JSON.parse(teamsData) : [];
-      teams.push(newTeam);
-      localStorage.setItem("hackmap-teams", JSON.stringify(teams));
-
-      // Update user's teams in localStorage
+      console.log("Creating team:", newTeam);
+      
+      // Save to Supabase using the utility function
+      const createdTeam = await addTeamToStorage(newTeam);
+      
+      if (!createdTeam) {
+        throw new Error("Failed to create team");
+      }
+      
+      // Update user's teams in localStorage for backwards compatibility
       const userData = JSON.parse(localStorage.getItem("hackmap-user") || "{}");
       userData.teams = userData.teams || [];
-      userData.teams.push(newTeam.id);
+      userData.teams.push(createdTeam.id);
       localStorage.setItem("hackmap-user", JSON.stringify(userData));
       
-      // Trigger storage event for other tabs
-      window.dispatchEvent(new Event('storage'));
-
       toast({
         title: "Team created",
         description: `Your team ${teamName} has been created successfully`,
@@ -265,6 +294,7 @@ const TeamCreate = () => {
 
       navigate("/teams");
     } catch (error) {
+      console.error("Error creating team:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create team",

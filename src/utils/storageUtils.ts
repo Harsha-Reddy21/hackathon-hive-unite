@@ -108,10 +108,21 @@ export const updateUserInStorage = async (updatedUser: any) => {
 
 // Add a hackathon to the database
 export const addHackathonToStorage = async (hackathon: any) => {
+  console.log("Adding hackathon to storage:", hackathon);
   try {
+    // Ensure proper structure for Supabase
+    const formattedHackathon = {
+      name: hackathon.title || hackathon.name,
+      description: hackathon.description,
+      location: hackathon.location,
+      start_date: hackathon.startDate || hackathon.start_date,
+      end_date: hackathon.endDate || hackathon.end_date,
+      organizer_id: hackathon.organizerId || hackathon.organizer_id
+    };
+
     const { data, error } = await supabase
       .from('hackathons')
-      .insert(hackathon)
+      .insert(formattedHackathon)
       .select();
       
     if (error) {
@@ -122,6 +133,12 @@ export const addHackathonToStorage = async (hackathon: any) => {
     
     toast.success("Hackathon created successfully");
     console.log("Hackathon created:", data);
+    
+    // Update localStorage for backwards compatibility
+    const hackathons = JSON.parse(localStorage.getItem("hackmap-hackathons") || "[]");
+    hackathons.push(data[0]);
+    localStorage.setItem("hackmap-hackathons", JSON.stringify(hackathons));
+    
     return data[0];
   } catch (err) {
     console.error("Error adding hackathon:", err);
@@ -138,9 +155,21 @@ export const addHackathonToStorage = async (hackathon: any) => {
 export const addTeamToStorage = async (team: any) => {
   console.log("Adding team to storage:", team);
   try {
+    // Ensure the data is properly formatted for Supabase
+    // We need to make sure JSON fields are properly formatted
+    const formattedTeam = {
+      ...team,
+      members: typeof team.members === 'string' ? team.members : JSON.stringify(team.members),
+      skills: typeof team.skills === 'string' ? team.skills : JSON.stringify(team.skills),
+      invitations: typeof team.invitations === 'string' ? team.invitations : JSON.stringify(team.invitations),
+      join_requests: typeof team.join_requests === 'string' ? team.join_requests : JSON.stringify(team.join_requests || [])
+    };
+    
+    console.log("Formatted team for Supabase:", formattedTeam);
+    
     const { data, error } = await supabase
       .from('teams')
-      .insert(team)
+      .insert(formattedTeam)
       .select();
       
     if (error) {
@@ -151,6 +180,12 @@ export const addTeamToStorage = async (team: any) => {
     
     toast.success("Team created successfully");
     console.log("Team created:", data);
+    
+    // Update localStorage for backwards compatibility
+    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
+    teams.push(data[0]);
+    localStorage.setItem("hackmap-teams", JSON.stringify(teams));
+    
     return data[0];
   } catch (err) {
     console.error("Error adding team:", err);
@@ -266,9 +301,18 @@ export const getHackathonById = async (id: string) => {
 // Update team in database
 export const updateTeamInStorage = async (updatedTeam: any) => {
   try {
+    // Ensure the data is properly formatted for Supabase
+    const formattedTeam = {
+      ...updatedTeam,
+      members: typeof updatedTeam.members === 'string' ? updatedTeam.members : JSON.stringify(updatedTeam.members),
+      skills: typeof updatedTeam.skills === 'string' ? updatedTeam.skills : JSON.stringify(updatedTeam.skills),
+      invitations: typeof updatedTeam.invitations === 'string' ? updatedTeam.invitations : JSON.stringify(updatedTeam.invitations),
+      join_requests: typeof updatedTeam.join_requests === 'string' ? updatedTeam.join_requests : JSON.stringify(updatedTeam.join_requests || [])
+    };
+    
     const { data, error } = await supabase
       .from('teams')
-      .update(updatedTeam)
+      .update(formattedTeam)
       .eq('id', updatedTeam.id)
       .select();
       
@@ -279,6 +323,14 @@ export const updateTeamInStorage = async (updatedTeam: any) => {
     }
     
     toast.success("Team updated successfully");
+    
+    // Update localStorage for backwards compatibility
+    const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
+    const updatedTeams = teams.map((team: any) => 
+      team.id === updatedTeam.id ? data[0] : team
+    );
+    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
+    
     return data[0];
   } catch (err) {
     console.error("Error updating team:", err);
@@ -310,6 +362,6 @@ export const getTeamsByHackathonId = async (hackathonId: string) => {
     console.error("Error fetching teams by hackathon:", err);
     // Fallback to localStorage
     const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
-    return teams.filter((team: any) => team.hackathonId === hackathonId);
+    return teams.filter((team: any) => team.hackathonId === hackathonId || team.hackathon_id === hackathonId);
   }
 };
