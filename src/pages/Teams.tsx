@@ -75,11 +75,18 @@ interface UserData {
   skills?: string[];
 }
 
+// Type for team invitation shown to users
+interface TeamInvitationDisplay {
+  teamId: string;
+  teamName: string;
+  invitedAt: string;
+}
+
 const Teams = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [teams, setTeams] = useState<Team[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [myInvitations, setMyInvitations] = useState<any[]>([]);
+  const [myInvitations, setMyInvitations] = useState<TeamInvitationDisplay[]>([]);
   const [joinByCodeOpen, setJoinByCodeOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [codeError, setCodeError] = useState("");
@@ -154,11 +161,14 @@ const Teams = () => {
         
         // Check for invitations for this user
         if (user && userProfile) {
-          const invitations = [];
+          const invitations: TeamInvitationDisplay[] = [];
           
           for (const team of normalizedTeams) {
             if (team.invitations && Array.isArray(team.invitations)) {
-              const userInvitation = team.invitations.find(
+              // We know these are properly parsed Invitation objects from our utility function
+              const typedInvitations = team.invitations as Invitation[];
+              
+              const userInvitation = typedInvitations.find(
                 (inv: Invitation) => inv.username === userProfile.username && inv.status === "pending"
               );
               
@@ -238,8 +248,8 @@ const Teams = () => {
     }
     
     // Check if user is already a member of this team
-    if (team.members && Array.isArray(team.members) && 
-        team.members.some((member: TeamMember) => member.id === currentUser.id)) {
+    const teamMembers = team.members as TeamMember[] || [];
+    if (teamMembers.some((member: TeamMember) => member.id === currentUser.id)) {
       uiToast({
         description: "You are already a member of this team",
         variant: "destructive",
@@ -312,15 +322,14 @@ const Teams = () => {
       setTeams(updatedTeams);
       
       // Find team leader to send email notification
-      if (team.members && Array.isArray(team.members)) {
-        const teamLeader = team.members.find((member: TeamMember) => 
-          member.role === "leader" || member.role === "Team Lead"
-        );
-        
-        if (teamLeader) {
-          // In a real app, you would send an email notification here
-          console.log("Would send email to team leader:", teamLeader);
-        }
+      const teamMembers = team.members as TeamMember[] || [];
+      const teamLeader = teamMembers.find((member: TeamMember) => 
+        member.role === "leader" || member.role === "Team Lead"
+      );
+      
+      if (teamLeader) {
+        // In a real app, you would send an email notification here
+        console.log("Would send email to team leader:", teamLeader);
       }
       
       uiToast({

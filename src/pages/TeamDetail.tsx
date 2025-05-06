@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -35,21 +34,15 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
         }
         
         // Parse JSON fields
-        const parsedMembers = parseMembers(teamData.members || null);
-        const parsedSkills = parseSkills(teamData.skills || null);
-        const parsedInvitations = parseInvitations(teamData.invitations || null);
-        const parsedJoinRequests = parseJoinRequests(teamData.join_requests || null);
-        
-        // Create a new team object with parsed fields
-        const teamWithParsedFields = {
+        const parsedTeam = {
           ...teamData,
-          members: parsedMembers,
-          skills: parsedSkills,
-          invitations: parsedInvitations,
-          joinRequests: parsedJoinRequests
+          members: parseMembers(teamData.members || null),
+          skills: parseSkills(teamData.skills || null),
+          invitations: parseInvitations(teamData.invitations || null),
+          joinRequests: parseJoinRequests(teamData.join_requests || null)
         };
         
-        setTeam(teamWithParsedFields);
+        setTeam(parsedTeam);
       } catch (error) {
         console.error("Error loading team:", error);
         toast({
