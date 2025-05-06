@@ -56,7 +56,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div>
+    <div className="min-h-screen">
       <Navbar />
       <div className="pt-16"> {/* Adding padding to account for fixed navbar */}
         <HeroSection />
