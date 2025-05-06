@@ -8,7 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight, Users, Lightbulb, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getTeamById, getCurrentUser, updateTeamInStorage, supabase } from "@/utils/storageUtils";
+import { getTeamById, getCurrentUser, updateTeamInStorage } from "@/utils/storageUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 // Sample team data for fallback
 const mockTeamMembers = [

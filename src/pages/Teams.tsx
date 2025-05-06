@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { sendTeamInviteEmail, sendJoinRequestEmail } from "@/utils/emailService";
-import { initializeLocalStorage, supabase } from "@/utils/storageUtils";
+import { initializeLocalStorage } from "@/utils/storageUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TeamMember {
   id: string;

@@ -4,6 +4,9 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 
+// Export supabase for use in other files
+export { supabase };
+
 // Check if supabase configuration is valid
 const isSupabaseConfigured = true; // We're now using the configured client
 
@@ -26,8 +29,6 @@ export const initializeDatabase = async () => {
     console.error("Database initialization error:", err);
     return false;
   }
-  
-  console.info("Database initialization complete");
 };
 
 // For backwards compatibility with code that was using localStorage
@@ -72,7 +73,7 @@ export const getCurrentUser = async () => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
         
       return { ...user, ...profile };
     }
@@ -87,7 +88,7 @@ export const getCurrentUser = async () => {
 };
 
 // Update user in the database
-export const updateUserInStorage = async (updatedUser) => {
+export const updateUserInStorage = async (updatedUser: any) => {
   try {
     const { data, error } = await supabase
       .from('profiles')
@@ -104,7 +105,7 @@ export const updateUserInStorage = async (updatedUser) => {
     console.error("Error updating user:", err);
     // Fallback to localStorage
     const users = JSON.parse(localStorage.getItem("hackmap-users") || "[]");
-    const updatedUsers = users.map(user => 
+    const updatedUsers = users.map((user: any) => 
       user.id === updatedUser.id ? updatedUser : user
     );
     localStorage.setItem("hackmap-users", JSON.stringify(updatedUsers));
@@ -113,7 +114,7 @@ export const updateUserInStorage = async (updatedUser) => {
 };
 
 // Add a hackathon to the database
-export const addHackathonToStorage = async (hackathon) => {
+export const addHackathonToStorage = async (hackathon: any) => {
   try {
     const { data, error } = await supabase
       .from('hackathons')
@@ -138,7 +139,7 @@ export const addHackathonToStorage = async (hackathon) => {
 };
 
 // Add a team to the database
-export const addTeamToStorage = async (team) => {
+export const addTeamToStorage = async (team: any) => {
   try {
     const { data, error } = await supabase
       .from('teams')
@@ -205,19 +206,19 @@ export const getAllTeams = async () => {
 };
 
 // Get team by ID
-export const getTeamById = async (id) => {
+export const getTeamById = async (id: string) => {
   try {
     const { data, error } = await supabase
       .from('teams')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
       
     if (error) {
       console.error("Error fetching team:", error);
       // Fallback to localStorage
       const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
-      return teams.find(team => team.id === id) || null;
+      return teams.find((team: any) => team.id === id) || null;
     }
     
     return data;
@@ -225,24 +226,24 @@ export const getTeamById = async (id) => {
     console.error("Error fetching team:", err);
     // Fallback to localStorage
     const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
-    return teams.find(team => team.id === id) || null;
+    return teams.find((team: any) => team.id === id) || null;
   }
 };
 
 // Get hackathon by ID
-export const getHackathonById = async (id) => {
+export const getHackathonById = async (id: string) => {
   try {
     const { data, error } = await supabase
       .from('hackathons')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
       
     if (error) {
       console.error("Error fetching hackathon:", error);
       // Fallback to localStorage
       const hackathons = JSON.parse(localStorage.getItem("hackmap-hackathons") || "[]");
-      return hackathons.find(hackathon => hackathon.id === id) || null;
+      return hackathons.find((hackathon: any) => hackathon.id === id) || null;
     }
     
     return data;
@@ -250,12 +251,12 @@ export const getHackathonById = async (id) => {
     console.error("Error fetching hackathon:", err);
     // Fallback to localStorage
     const hackathons = JSON.parse(localStorage.getItem("hackmap-hackathons") || "[]");
-    return hackathons.find(hackathon => hackathon.id === id) || null;
+    return hackathons.find((hackathon: any) => hackathon.id === id) || null;
   }
 };
 
 // Update team in database
-export const updateTeamInStorage = async (updatedTeam) => {
+export const updateTeamInStorage = async (updatedTeam: any) => {
   try {
     const { data, error } = await supabase
       .from('teams')
@@ -273,7 +274,7 @@ export const updateTeamInStorage = async (updatedTeam) => {
     console.error("Error updating team:", err);
     // Fallback to localStorage
     const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
-    const updatedTeams = teams.map(team => 
+    const updatedTeams = teams.map((team: any) => 
       team.id === updatedTeam.id ? updatedTeam : team
     );
     localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
@@ -282,12 +283,12 @@ export const updateTeamInStorage = async (updatedTeam) => {
 };
 
 // Get teams for a specific hackathon
-export const getTeamsByHackathonId = async (hackathonId) => {
+export const getTeamsByHackathonId = async (hackathonId: string) => {
   try {
     const { data, error } = await supabase
       .from('teams')
       .select('*')
-      .eq('hackathonId', hackathonId);
+      .eq('hackathon_id', hackathonId);
       
     if (error) {
       console.error("Error fetching teams by hackathon:", error);
@@ -299,6 +300,6 @@ export const getTeamsByHackathonId = async (hackathonId) => {
     console.error("Error fetching teams by hackathon:", err);
     // Fallback to localStorage
     const teams = JSON.parse(localStorage.getItem("hackmap-teams") || "[]");
-    return teams.filter(team => team.hackathonId === hackathonId);
+    return teams.filter((team: any) => team.hackathonId === hackathonId);
   }
 };
