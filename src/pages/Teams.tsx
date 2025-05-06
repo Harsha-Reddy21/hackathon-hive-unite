@@ -125,14 +125,14 @@ const Teams = () => {
         console.log("Teams loaded:", teamsData);
         
         // Normalize data to handle both DB field names and client-side field names
-        const normalizedTeams = teamsData.map((team: any) => {
+        const normalizedTeams = teamsData.map((team: SupabaseTeam) => {
           // Parse JSON fields that may be returned as strings from the database
           const membersArray = parseMembers(team.members || null);
           const skillsArray = parseSkills(team.skills || null);
           const invitationsArray = parseInvitations(team.invitations || null);
           const joinRequestsArray = parseJoinRequests(team.join_requests || null);
           
-          const normalizedTeam = {
+          const normalizedTeam: Team = {
             id: team.id,
             name: team.name,
             hackathon_id: team.hackathon_id,
@@ -228,7 +228,7 @@ const Teams = () => {
     }
   );
 
-  const handleJoinTeamRequest = async (team: any) => {
+  const handleJoinTeamRequest = async (team: Team) => {
     if (!currentUser) {
       uiToast({
         description: "Please log in to join teams",
