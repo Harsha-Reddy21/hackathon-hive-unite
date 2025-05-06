@@ -111,8 +111,8 @@ const HackathonDetail = () => {
     // Save registration status to localStorage
     const userData = JSON.parse(localStorage.getItem("hackmap-user") || "{}");
     const registeredHackathons = userData.registeredHackathons || [];
-    if (!registeredHackathons.includes(hackathon.id)) {
-      registeredHackathons.push(hackathon.id);
+    if (!registeredHackathons.includes(hackathon?.id)) {
+      registeredHackathons.push(hackathon?.id);
       const updatedUserData = {
         ...userData,
         registeredHackathons,
@@ -132,7 +132,7 @@ const HackathonDetail = () => {
     // Remove registration status from localStorage
     const userData = JSON.parse(localStorage.getItem("hackmap-user") || "{}");
     const registeredHackathons = userData.registeredHackathons || [];
-    const updatedHackathons = registeredHackathons.filter(id => id !== hackathon.id);
+    const updatedHackathons = registeredHackathons.filter(id => id !== hackathon?.id);
     const updatedUserData = {
       ...userData,
       registeredHackathons: updatedHackathons,
@@ -343,7 +343,7 @@ const HackathonDetail = () => {
                     <div key={dayIndex} className="mb-6">
                       <h3 className="font-semibold text-lg mb-3">{day.date}</h3>
                       <div className="space-y-3 pl-4 border-l-2 border-gray-200">
-                        {day.events.map((event, eventIndex) => (
+                        {day.events && day.events.map((event, eventIndex) => (
                           <div key={eventIndex} className="flex">
                             <div className="w-1/4 font-medium">{event.time}</div>
                             <div className="w-3/4">{event.title}</div>
@@ -398,7 +398,7 @@ const HackathonDetail = () => {
                   </Button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {hackathonTeams.length > 0 ? (
+                  {hackathonTeams && hackathonTeams.length > 0 ? (
                     hackathonTeams.map((team: any) => (
                       <Card key={team.id}>
                         <CardContent className="pt-6">

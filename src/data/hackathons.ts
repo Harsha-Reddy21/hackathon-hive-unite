@@ -1,4 +1,3 @@
-
 import { Hackathon } from "@/components/HackathonCard";
 
 export const mockHackathons: Hackathon[] = [
