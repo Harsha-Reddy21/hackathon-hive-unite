@@ -35,12 +35,18 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
         }
         
         // Parse JSON fields
+        const parsedMembers = parseMembers(teamData.members);
+        const parsedSkills = parseSkills(teamData.skills);
+        const parsedInvitations = parseInvitations(teamData.invitations);
+        const parsedJoinRequests = parseJoinRequests(teamData.join_requests);
+        
+        // Create a new team object with parsed fields
         const teamWithParsedFields = {
           ...teamData,
-          members: parseMembers(teamData.members),
-          skills: parseSkills(teamData.skills),
-          invitations: parseInvitations(teamData.invitations),
-          joinRequests: parseJoinRequests(teamData.join_requests)
+          members: parsedMembers,
+          skills: parsedSkills,
+          invitations: parsedInvitations,
+          joinRequests: parsedJoinRequests
         };
         
         setTeam(teamWithParsedFields);
@@ -91,8 +97,8 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
       <Navbar />
       <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{team.name}</h1>
-          <p className="text-gray-600">{team.description}</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{team?.name}</h1>
+          <p className="text-gray-600">{team?.description}</p>
         </div>
 
         <Card className="overflow-hidden">
@@ -106,12 +112,12 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
             <div className="space-y-4">
               <div>
                 <h3 className="font-semibold mb-2">Hackathon</h3>
-                <p className="text-gray-500">{team.hackathon_name}</p>
+                <p className="text-gray-500">{team?.hackathon_name}</p>
               </div>
               <div>
                 <h3 className="font-semibold mb-2">Members</h3>
                 <div className="flex items-center space-x-2">
-                  {team.members && team.members.map((member: any) => (
+                  {team?.members && team.members.map((member: any) => (
                     <Badge key={member.id} className="bg-hackmap-blue/10 text-hackmap-blue">
                       {member.username} ({member.role})
                     </Badge>
@@ -121,14 +127,14 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
               <div>
                 <h3 className="font-semibold mb-2">Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                  {team.skills && team.skills.map((skill: string) => (
+                  {team?.skills && team.skills.map((skill: string) => (
                     <Badge key={skill} className="bg-hackmap-purple/10 text-hackmap-purple">
                       {skill}
                     </Badge>
                   ))}
                 </div>
               </div>
-              {team.invitations && team.invitations.length > 0 && (
+              {team?.invitations && team.invitations.length > 0 && (
                 <div>
                   <h3 className="font-semibold mb-2">Pending Invitations</h3>
                   <div className="flex flex-wrap gap-2">

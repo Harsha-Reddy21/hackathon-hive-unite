@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -126,14 +125,14 @@ const Teams = () => {
         console.log("Teams loaded:", teamsData);
         
         // Normalize data to handle both DB field names and client-side field names
-        const normalizedTeams = teamsData.map((team: SupabaseTeam) => {
+        const normalizedTeams = teamsData.map((team: any) => {
           // Parse JSON fields that may be returned as strings from the database
           const membersArray = parseMembers(team.members);
           const skillsArray = parseSkills(team.skills);
           const invitationsArray = parseInvitations(team.invitations);
           const joinRequestsArray = parseJoinRequests(team.join_requests);
           
-          const normalizedTeam: Team = {
+          const normalizedTeam = {
             id: team.id,
             name: team.name,
             hackathon_id: team.hackathon_id,
@@ -160,7 +159,7 @@ const Teams = () => {
           for (const team of normalizedTeams) {
             if (team.invitations && Array.isArray(team.invitations)) {
               const userInvitation = team.invitations.find(
-                (inv) => inv.username === userProfile.username && inv.status === "pending"
+                (inv: Invitation) => inv.username === userProfile.username && inv.status === "pending"
               );
               
               if (userInvitation) {
@@ -229,7 +228,7 @@ const Teams = () => {
     }
   );
 
-  const handleJoinTeamRequest = async (team: Team) => {
+  const handleJoinTeamRequest = async (team: any) => {
     if (!currentUser) {
       uiToast({
         description: "Please log in to join teams",
@@ -240,7 +239,7 @@ const Teams = () => {
     
     // Check if user is already a member of this team
     if (team.members && Array.isArray(team.members) && 
-        team.members.some(member => member.id === currentUser.id)) {
+        team.members.some((member: TeamMember) => member.id === currentUser.id)) {
       uiToast({
         description: "You are already a member of this team",
         variant: "destructive",
@@ -285,15 +284,14 @@ const Teams = () => {
       }
       
       // Add the new request
-      const updatedRequests = [
-        ...joinRequests,
-        {
-          id: `request-${Date.now()}`,
-          userId: currentUser.id,
-          username: currentUser.username,
-          requestDate: new Date().toISOString()
-        }
-      ];
+      const newRequest = {
+        id: `request-${Date.now()}`,
+        userId: currentUser.id,
+        username: currentUser.username,
+        requestDate: new Date().toISOString()
+      };
+      
+      const updatedRequests = [...joinRequests, newRequest];
       
       // Update the team
       const { error: updateError } = await supabase
@@ -308,14 +306,14 @@ const Teams = () => {
       }
       
       // Update local state
-      const updatedTeams = teams.map(t => 
+      const updatedTeams = teams.map((t: any) => 
         t.id === team.id ? { ...t, joinRequests: updatedRequests } : t
       );
       setTeams(updatedTeams);
       
       // Find team leader to send email notification
       if (team.members && Array.isArray(team.members)) {
-        const teamLeader = team.members.find(member => 
+        const teamLeader = team.members.find((member: TeamMember) => 
           member.role === "leader" || member.role === "Team Lead"
         );
         
@@ -364,14 +362,13 @@ const Teams = () => {
       });
       
       // Add user as a member
-      const updatedMembers = [
-        ...members,
-        {
-          id: currentUser.id,
-          username: currentUser.username,
-          role: "member"
-        }
-      ];
+      const newMember = {
+        id: currentUser.id,
+        username: currentUser.username,
+        role: "member"
+      };
+      
+      const updatedMembers = [...members, newMember];
       
       // Update the team in the database
       const { error: updateError } = await supabase
@@ -390,7 +387,7 @@ const Teams = () => {
       }
       
       // Update local state
-      setTeams(teams.map(t => t.id === teamId ? {
+      setTeams(teams.map((t: any) => t.id === teamId ? {
         ...t,
         invitations: updatedInvitations,
         members: updatedMembers,
