@@ -4,69 +4,78 @@ import { Hackathon } from "@/components/HackathonCard";
 export const mockHackathons: Hackathon[] = [
   {
     id: "1",
-    title: "AI for Good Hackathon",
-    theme: "Using AI to solve social problems",
-    startDate: "2024-06-10",
-    endDate: "2024-06-12",
-    registrationDeadline: "2024-06-05",
-    prizes: ["$10,000 Grand Prize", "Mentorship from Industry Leaders"],
-    tags: ["AI", "Social Impact", "Machine Learning"],
-    participantCount: 250
+    title: "Future Tech Summit",
+    theme: "Quantum Computing and AI Integration",
+    startDate: "2025-07-15",
+    endDate: "2025-07-17",
+    registrationDeadline: "2025-07-01",
+    prizes: [
+      { place: "1st Place", reward: "$20,000 and mentorship" },
+      { place: "2nd Place", reward: "$10,000 and cloud credits" }
+    ],
+    tags: ["Quantum Computing", "AI", "Machine Learning"],
+    participantCount: 350,
+    location: "Boston, MA"
   },
   {
     id: "2",
-    title: "Web3 Innovation Challenge",
-    theme: "Building the decentralized future",
-    startDate: "2024-06-20",
-    endDate: "2024-06-22",
-    registrationDeadline: "2024-06-15",
-    prizes: ["$15,000 in ETH", "Accelerator Program Access"],
-    tags: ["Blockchain", "Web3", "Ethereum", "DeFi"],
-    participantCount: 320
+    title: "GreenTech Challenge",
+    theme: "Sustainable Solutions for Climate Action",
+    startDate: "2025-08-20",
+    endDate: "2025-08-22",
+    registrationDeadline: "2025-08-05",
+    prizes: [
+      { place: "1st Place", reward: "$15,000 and accelerator program" },
+      { place: "2nd Place", reward: "$7,500 and mentorship" }
+    ],
+    tags: ["Sustainability", "CleanTech", "IoT", "Data Science"],
+    participantCount: 280,
+    location: "Seattle, WA"
   },
   {
     id: "3",
-    title: "HealthTech Hackathon",
-    theme: "Technology solutions for healthcare",
-    startDate: "2024-07-05",
-    endDate: "2024-07-07",
-    registrationDeadline: "2024-06-30",
-    prizes: ["$8,000 in Cash Prizes", "Pilot Program with Hospitals"],
-    tags: ["Healthcare", "IoT", "Data Science", "Mobile"],
-    participantCount: 180
+    title: "MedTech Innovation",
+    theme: "Next Generation Healthcare Solutions",
+    startDate: "2025-09-10",
+    endDate: "2025-09-12",
+    registrationDeadline: "2025-08-27",
+    prizes: [
+      { place: "1st Place", reward: "$25,000 and clinical trial opportunity" },
+      { place: "2nd Place", reward: "$12,500 and incubator placement" }
+    ],
+    tags: ["Healthcare", "Wearables", "AI", "Telehealth"],
+    participantCount: 220,
+    location: "Minneapolis, MN"
   },
   {
     id: "4",
-    title: "Climate Change Challenge",
-    theme: "Tech solutions for environmental problems",
-    startDate: "2024-07-15",
-    endDate: "2024-07-18",
-    registrationDeadline: "2024-07-10",
-    prizes: ["$12,000 Grand Prize", "Sustainability Startup Incubation"],
-    tags: ["Environment", "Sustainability", "IoT", "Data"],
-    participantCount: 210
+    title: "EdTech Revolution",
+    theme: "Transforming Education with Technology",
+    startDate: "2025-10-05",
+    endDate: "2025-10-07",
+    registrationDeadline: "2025-09-20",
+    prizes: [
+      { place: "1st Place", reward: "$18,000 and school district pilot" },
+      { place: "2nd Place", reward: "$9,000 and publisher partnership" }
+    ],
+    tags: ["Education", "Accessibility", "AI", "Gamification"],
+    participantCount: 190,
+    location: "Austin, TX"
   },
   {
     id: "5",
-    title: "EdTech Innovation Jam",
-    theme: "Reimagining education with technology",
-    startDate: "2024-07-25",
-    endDate: "2024-07-27",
-    registrationDeadline: "2024-07-20",
-    prizes: ["$7,500 Cash Prize", "Partnership with Educational Institutions"],
-    tags: ["Education", "Mobile", "AR/VR", "Gamification"],
-    participantCount: 150
-  },
-  {
-    id: "6",
-    title: "FinTech Revolution",
-    theme: "Disrupting financial services",
-    startDate: "2024-08-05",
-    endDate: "2024-08-08",
-    registrationDeadline: "2024-07-30",
-    prizes: ["$20,000 Investment Opportunity", "Financial Industry Mentors"],
-    tags: ["Finance", "Blockchain", "AI", "Security"],
-    participantCount: 280
+    title: "Fintech Forward",
+    theme: "Financial Innovation for All",
+    startDate: "2025-11-12",
+    endDate: "2025-11-14",
+    registrationDeadline: "2025-10-29",
+    prizes: [
+      { place: "1st Place", reward: "$30,000 and VC pitch opportunity" },
+      { place: "2nd Place", reward: "$15,000 and accelerator program" }
+    ],
+    tags: ["Finance", "Blockchain", "Inclusion", "Security"],
+    participantCount: 310,
+    location: "New York, NY"
   }
 ];
 

@@ -25,154 +25,342 @@ import HackathonCreate from "./pages/HackathonCreate";
 
 // Create a centralized store for mock data to ensure consistency
 const initMockData = () => {
-  const shouldReinitialize = false; // Set to true to force data reset for debugging
+  // Force data reset
+  const shouldReinitialize = true;
 
-  // Initialize mock teams if not already present or force reinitialize
+  // Initialize mock teams with fresh data
   if (!localStorage.getItem("hackmap-teams") || shouldReinitialize) {
-    console.log("Initializing mock teams data");
+    console.log("Initializing fresh teams data");
     const mockTeams = [
       {
         id: "1",
-        name: "Code Wizards",
-        hackathonName: "AI for Good Hackathon",
+        name: "Quantum Coders",
+        hackathonName: "Future Tech Summit",
         hackathonId: "1",
-        description: "Building an AI solution to help identify and reduce food waste in restaurants.",
+        description: "Building a quantum computing simulator for educational purposes that makes complex concepts accessible to students.",
         members: [
-          { id: "user-1", name: "Alex Johnson", username: "alex", role: "Team Lead" },
-          { id: "user-2", name: "Jamie Smith", username: "jamie", role: "Backend Developer" }
+          { id: "user-1", name: "Taylor Swift", username: "taylordev", role: "Team Lead" },
+          { id: "user-2", name: "Ryan Reynolds", username: "ryandev", role: "Frontend Developer" }
         ],
         membersCount: 2,
         maxMembers: 5,
-        skills: ["AI", "Machine Learning", "Backend", "UI/UX"],
-        inviteCode: "WIZARDS123",
+        skills: ["Quantum Computing", "React", "Python", "Education"],
+        inviteCode: "QUANTUM42",
         projectIdea: {
-          title: "AI Food Waste Reducer",
-          description: "An AI-powered system that helps restaurants reduce food waste through smart inventory management and predictive analytics.",
-          techStack: ["TensorFlow", "React", "Node.js", "PostgreSQL"],
-          progress: 35
+          title: "Quantum Classroom",
+          description: "An interactive platform that simulates quantum computing concepts through visual exercises and games.",
+          techStack: ["React", "Python", "TensorFlow", "Three.js"],
+          progress: 40
         }
       },
       {
         id: "2",
-        name: "Blockchain Pioneers",
-        hackathonName: "Web3 Innovation Challenge",
+        name: "EcoSolutions",
+        hackathonName: "GreenTech Challenge",
         hackathonId: "2",
-        description: "Creating a decentralized marketplace for carbon credits using blockchain technology.",
+        description: "Creating a mobile app that helps users track and reduce their carbon footprint through personalized recommendations.",
         members: [
-          { id: "user-3", name: "Taylor Brown", username: "taylor", role: "Team Lead" }
+          { id: "user-3", name: "Zendaya Coleman", username: "zendaya", role: "Team Lead" },
+          { id: "user-4", name: "Tom Holland", username: "tomdev", role: "Mobile Developer" },
+          { id: "user-5", name: "Timothée Chalamet", username: "timothee", role: "UI Designer" }
         ],
-        membersCount: 1,
-        maxMembers: 4,
-        skills: ["Blockchain", "Smart Contracts", "Frontend", "Solidity"],
-        inviteCode: "PIONEERS456",
+        membersCount: 3,
+        maxMembers: 5,
+        skills: ["Mobile Development", "UX Design", "Data Analysis", "Sustainability"],
+        inviteCode: "ECOSAVE24",
         projectIdea: {
-          title: "Carbon Credit DEX",
-          description: "A decentralized exchange for carbon credits that makes offset trading accessible and transparent.",
-          techStack: ["Ethereum", "Solidity", "React", "Web3.js"],
-          progress: 20
+          title: "CarboTrack",
+          description: "A gamified mobile application that calculates personal carbon footprints and suggests actionable steps to reduce environmental impact.",
+          techStack: ["React Native", "Firebase", "Node.js", "TensorFlow Lite"],
+          progress: 65
         }
       },
       {
         id: "3",
-        name: "HealthTech Innovators",
-        hackathonName: "HealthTech Hackathon",
+        name: "HealthMinders",
+        hackathonName: "MedTech Innovation",
         hackathonId: "3",
-        description: "Developing a mobile app that helps patients track medication and appointments.",
+        description: "Developing a wearable solution that monitors vital health metrics and provides early warning for potential health issues.",
         members: [
-          { id: "user-4", name: "Sam Wilson", username: "samw", role: "Team Lead" },
-          { id: "user-5", name: "Jordan Lee", username: "jlee", role: "UI Designer" }
+          { id: "user-6", name: "Chadwick Newman", username: "chadwick", role: "Team Lead" },
+          { id: "user-7", name: "Emma Stone", username: "emma", role: "Hardware Engineer" }
+        ],
+        membersCount: 2,
+        maxMembers: 4,
+        skills: ["IoT", "Machine Learning", "Hardware Design", "Healthcare"],
+        inviteCode: "HEALTH365",
+        projectIdea: {
+          title: "VitalAlert",
+          description: "A smart wearable device that continuously monitors vital signs and uses ML to detect anomalies before they become serious health concerns.",
+          techStack: ["Arduino", "TensorFlow", "React Native", "AWS"],
+          progress: 30
+        }
+      },
+      {
+        id: "4",
+        name: "EdAccessibility",
+        hackathonName: "EdTech Revolution",
+        hackathonId: "4",
+        description: "Building an AI-powered tool that makes educational content accessible to students with different learning abilities.",
+        members: [
+          { id: "user-8", name: "Lupita Nyong'o", username: "lupita", role: "Team Lead" },
+          { id: "user-9", name: "Donald Glover", username: "donald", role: "AI Engineer" }
+        ],
+        membersCount: 2,
+        maxMembers: 6,
+        skills: ["Artificial Intelligence", "Education", "Accessibility", "UX Design"],
+        inviteCode: "EDACCESS",
+        projectIdea: {
+          title: "LearningLens",
+          description: "An adaptive platform that automatically tailors educational content to individual learning styles and needs using AI.",
+          techStack: ["Python", "React", "TensorFlow", "AWS"],
+          progress: 25
+        }
+      },
+      {
+        id: "5",
+        name: "FinanceForAll",
+        hackathonName: "Fintech Forward",
+        hackathonId: "5",
+        description: "Developing a financial literacy application that makes investing and saving accessible to underserved communities.",
+        members: [
+          { id: "user-10", name: "Michael B. Jordan", username: "michael", role: "Team Lead" },
+          { id: "user-11", name: "Zoe Saldana", username: "zoe", role: "Backend Developer" }
         ],
         membersCount: 2,
         maxMembers: 5,
-        skills: ["Healthcare", "Mobile Development", "UX Design"],
-        inviteCode: "HEALTH789",
+        skills: ["Finance", "Mobile Development", "Data Visualization", "Security"],
+        inviteCode: "FINTECH21",
         projectIdea: {
-          title: "MediTrack App",
-          description: "A comprehensive mobile application for patients to track medications, appointments, and health metrics.",
-          techStack: ["React Native", "Firebase", "Node.js", "MongoDB"],
-          progress: 45
+          title: "WealthWise",
+          description: "A mobile platform that simplifies financial concepts and provides personalized guidance for budgeting, saving, and investing.",
+          techStack: ["Flutter", "Firebase", "Node.js", "Plaid API"],
+          progress: 55
         }
       }
     ];
     localStorage.setItem("hackmap-teams", JSON.stringify(mockTeams));
   }
   
-  // Initialize mock hackathons if not already present or force reinitialize
+  // Initialize fresh hackathons data
   if (!localStorage.getItem("hackmap-hackathons") || shouldReinitialize) {
-    console.log("Initializing mock hackathons data");
+    console.log("Initializing fresh hackathons data");
     const mockHackathons = [
       {
         id: "1",
-        title: "AI for Good Hackathon",
-        theme: "Using AI to solve social problems",
-        startDate: "2025-06-15",
-        endDate: "2025-06-17",
-        tags: ["AI", "Social Impact", "Machine Learning"],
-        location: "San Francisco, CA",
-        prizes: ["$10,000 Grand Prize", "Mentorship Opportunities"],
-        participantCount: 250,
-        description: "Join us for 3 days of innovation as we explore how artificial intelligence can address pressing social challenges. Teams will collaborate to build solutions that make a positive impact on society. This event brings together developers, designers, and domain experts to create technology with purpose.",
-        organizer: "Tech for Good Foundation",
-        registrationDeadline: "2025-06-01",
-        website: "https://aiforgood-hackathon.example.com",
+        title: "Future Tech Summit",
+        theme: "Quantum Computing and AI Integration",
+        startDate: "2025-07-15",
+        endDate: "2025-07-17",
+        tags: ["Quantum Computing", "AI", "Machine Learning"],
+        location: "Boston, MA",
+        prizes: [
+          { place: "1st Place", reward: "$20,000 and mentorship from leading quantum computing experts" },
+          { place: "2nd Place", reward: "$10,000 and quantum computing cloud credits" },
+          { place: "3rd Place", reward: "$5,000 and professional certification courses" }
+        ],
+        participantCount: 350,
+        description: "The Future Tech Summit brings together innovators to explore the intersection of quantum computing and artificial intelligence. Participants will tackle challenges in quantum algorithm optimization, AI acceleration using quantum principles, and creating accessible quantum computing educational tools.",
+        organizer: "Quantum Future Foundation",
+        registrationDeadline: "2025-07-01",
+        website: "https://futuretechsummit.example.com",
         teams: ["1"], // Reference to team IDs
-        sponsors: ["Microsoft", "Google", "OpenAI"]
+        sponsors: ["IBM Quantum", "Google AI", "MIT Technology Review"],
+        schedule: [
+          { time: "Day 1, 9:00 AM", activity: "Opening Keynote: The Quantum Revolution" },
+          { time: "Day 1, 11:00 AM", activity: "Workshop: Quantum Algorithm Basics" },
+          { time: "Day 1, 2:00 PM", activity: "Team Formation and Challenge Briefing" },
+          { time: "Day 2, 9:00 AM", activity: "Hacking Begins" },
+          { time: "Day 2, 7:00 PM", activity: "Expert Panel: Future of Quantum Computing" },
+          { time: "Day 3, 12:00 PM", activity: "Project Submissions Deadline" },
+          { time: "Day 3, 3:00 PM", activity: "Finalist Presentations" },
+          { time: "Day 3, 5:00 PM", activity: "Awards Ceremony" }
+        ]
       },
       {
         id: "2",
-        title: "Web3 Innovation Challenge",
-        theme: "Building the decentralized future",
-        startDate: "2025-07-22",
-        endDate: "2025-07-24",
-        tags: ["Blockchain", "Web3", "DeFi"],
-        location: "New York, NY",
-        prizes: ["$15,000 in ETH", "Accelerator Program Access"],
-        participantCount: 320,
-        description: "Dive into the world of Web3 technologies in this exciting hackathon. Build innovative solutions using blockchain, smart contracts, and decentralized technologies. Whether you're an experienced blockchain developer or just getting started, this hackathon offers an opportunity to shape the future of digital ownership and transactions.",
-        organizer: "Blockchain Consortium",
-        registrationDeadline: "2025-07-15",
-        website: "https://web3-challenge.example.com",
+        title: "GreenTech Challenge",
+        theme: "Sustainable Solutions for Climate Action",
+        startDate: "2025-08-20",
+        endDate: "2025-08-22",
+        tags: ["Sustainability", "CleanTech", "IoT", "Data Science"],
+        location: "Seattle, WA",
+        prizes: [
+          { place: "1st Place", reward: "$15,000 and accelerator program placement" },
+          { place: "2nd Place", reward: "$7,500 and sustainable business mentorship" },
+          { place: "Best Carbon Impact", reward: "$5,000 grant for project development" }
+        ],
+        participantCount: 280,
+        description: "The GreenTech Challenge focuses on developing innovative technological solutions to combat climate change. From carbon footprint tracking to renewable energy optimization, we're looking for ideas that can make a measurable environmental impact while being practical to implement at scale.",
+        organizer: "Climate Innovation Collective",
+        registrationDeadline: "2025-08-05",
+        website: "https://greentechallenge.example.com",
         teams: ["2"], // Reference to team IDs
-        sponsors: ["Ethereum Foundation", "Binance", "Coinbase"]
+        sponsors: ["Patagonia", "Tesla Energy", "National Renewable Energy Laboratory"],
+        schedule: [
+          { time: "Day 1, 8:30 AM", activity: "Opening Ceremony and Climate Impact Briefing" },
+          { time: "Day 1, 10:00 AM", activity: "Workshop: Environmental Data Sources and APIs" },
+          { time: "Day 1, 1:00 PM", activity: "Team Formation and Challenge Selection" },
+          { time: "Day 2, 9:00 AM", activity: "Development Sprint" },
+          { time: "Day 2, 4:00 PM", activity: "Sustainability Expert Office Hours" },
+          { time: "Day 3, 1:00 PM", activity: "Project Submissions" },
+          { time: "Day 3, 3:30 PM", activity: "Finalist Demos" },
+          { time: "Day 3, 6:00 PM", activity: "Awards and Networking Mixer" }
+        ]
       },
       {
         id: "3",
-        title: "HealthTech Hackathon",
-        theme: "Innovation in healthcare technology",
-        startDate: "2025-08-10",
-        endDate: "2025-08-12",
-        tags: ["Healthcare", "IoT", "Mobile"],
-        location: "Boston, MA",
-        prizes: ["$8,000 in Cash Prizes", "Pilot Program with Hospitals"],
-        participantCount: 180,
-        description: "This hackathon focuses on technological solutions for healthcare challenges. From patient care to hospital operations, teams will develop innovative tools that can improve health outcomes and streamline medical processes. Join healthcare professionals, engineers, and designers to create the next generation of medical technology.",
-        organizer: "MedTech Alliance",
-        registrationDeadline: "2025-08-01",
-        website: "https://healthtech-hackathon.example.com",
+        title: "MedTech Innovation",
+        theme: "Next Generation Healthcare Solutions",
+        startDate: "2025-09-10",
+        endDate: "2025-09-12",
+        tags: ["Healthcare", "Wearables", "AI", "Telehealth"],
+        location: "Minneapolis, MN",
+        prizes: [
+          { place: "1st Place", reward: "$25,000 and clinical trial opportunity" },
+          { place: "2nd Place", reward: "$12,500 and healthcare incubator placement" },
+          { place: "Patient Impact Award", reward: "$8,000 and mentorship from medical professionals" }
+        ],
+        participantCount: 220,
+        description: "MedTech Innovation challenges participants to create cutting-edge solutions for healthcare challenges. Whether it's wearable devices for remote patient monitoring, AI for early disease detection, or telehealth innovations for underserved communities, we're looking for ideas that can transform patient care and healthcare delivery.",
+        organizer: "Mayo Clinic Innovation Lab",
+        registrationDeadline: "2025-08-27",
+        website: "https://medtechinnovation.example.com",
         teams: ["3"], // Reference to team IDs
-        sponsors: ["Johnson & Johnson", "Mayo Clinic", "Philips Healthcare"]
+        sponsors: ["Mayo Clinic", "Medtronic", "UnitedHealth Group"],
+        schedule: [
+          { time: "Day 1, 9:00 AM", activity: "Opening Keynote: Healthcare Challenges and Opportunities" },
+          { time: "Day 1, 11:30 AM", activity: "Panel: Regulatory Considerations for Medical Innovations" },
+          { time: "Day 1, 2:00 PM", activity: "Team Formation and Challenge Selection" },
+          { time: "Day 2, 8:30 AM", activity: "Development Day with Clinical Advisor Check-ins" },
+          { time: "Day 2, 6:00 PM", activity: "Healthcare Professionals Feedback Session" },
+          { time: "Day 3, 12:00 PM", activity: "Final Submissions" },
+          { time: "Day 3, 2:30 PM", activity: "Finalist Presentations" },
+          { time: "Day 3, 5:00 PM", activity: "Awards Ceremony" }
+        ]
+      },
+      {
+        id: "4",
+        title: "EdTech Revolution",
+        theme: "Transforming Education with Technology",
+        startDate: "2025-10-05",
+        endDate: "2025-10-07",
+        tags: ["Education", "Accessibility", "AI", "Gamification"],
+        location: "Austin, TX",
+        prizes: [
+          { place: "1st Place", reward: "$18,000 and school district pilot program" },
+          { place: "2nd Place", reward: "$9,000 and education publisher partnership" },
+          { place: "Accessibility Champion", reward: "$5,000 and inclusive design mentorship" }
+        ],
+        participantCount: 190,
+        description: "EdTech Revolution focuses on creating innovative solutions that make quality education more accessible, engaging, and effective for all learners. From AI-powered tutoring to gamified learning experiences to tools that support diverse learning needs, we're seeking technologies that can make a meaningful impact in education.",
+        organizer: "Digital Learning Consortium",
+        registrationDeadline: "2025-09-20",
+        website: "https://edtechrevolution.example.com",
+        teams: ["4"], // Reference to team IDs
+        sponsors: ["Khan Academy", "Microsoft Education", "National Education Association"],
+        schedule: [
+          { time: "Day 1, 9:30 AM", activity: "Opening Session: The Future of Learning" },
+          { time: "Day 1, 11:00 AM", activity: "Workshop: Understanding Diverse Learning Needs" },
+          { time: "Day 1, 2:30 PM", activity: "Team Formation and Ideation" },
+          { time: "Day 2, 9:00 AM", activity: "Development and Educator Feedback Sessions" },
+          { time: "Day 2, 5:00 PM", activity: "Student Panel: What Learners Really Need" },
+          { time: "Day 3, 11:00 AM", activity: "Project Submissions" },
+          { time: "Day 3, 2:00 PM", activity: "Finalist Demos" },
+          { time: "Day 3, 4:30 PM", activity: "Awards and Implementation Planning" }
+        ]
+      },
+      {
+        id: "5",
+        title: "Fintech Forward",
+        theme: "Financial Innovation for All",
+        startDate: "2025-11-12",
+        endDate: "2025-11-14",
+        tags: ["Finance", "Blockchain", "Inclusion", "Security"],
+        location: "New York, NY",
+        prizes: [
+          { place: "1st Place", reward: "$30,000 and venture capital pitch opportunity" },
+          { place: "2nd Place", reward: "$15,000 and financial accelerator program" },
+          { place: "Financial Inclusion Award", reward: "$10,000 and community pilot program" }
+        ],
+        participantCount: 310,
+        description: "Fintech Forward challenges innovators to develop solutions that make financial services more accessible, secure, and beneficial for everyone. From inclusive banking solutions to blockchain applications to financial literacy tools, we're looking for technologies that can democratize finance and create economic opportunities.",
+        organizer: "Open Finance Initiative",
+        registrationDeadline: "2025-10-29",
+        website: "https://fintechforward.example.com",
+        teams: ["5"], // Reference to team IDs
+        sponsors: ["Visa", "Goldman Sachs", "Square"],
+        schedule: [
+          { time: "Day 1, 8:00 AM", activity: "Welcome and Financial Inclusion Keynote" },
+          { time: "Day 1, 10:00 AM", activity: "Workshop: Financial APIs and Data Security" },
+          { time: "Day 1, 1:00 PM", activity: "Challenge Briefing and Team Formation" },
+          { time: "Day 2, 8:30 AM", activity: "Development and Mentor Sessions" },
+          { time: "Day 2, 6:30 PM", activity: "Industry Expert Panel: The Future of Money" },
+          { time: "Day 3, 12:00 PM", activity: "Final Submissions" },
+          { time: "Day 3, 3:00 PM", activity: "Finalist Presentations" },
+          { time: "Day 3, 5:30 PM", activity: "Awards Ceremony and Networking Reception" }
+        ]
       }
     ];
     localStorage.setItem("hackmap-hackathons", JSON.stringify(mockHackathons));
   }
   
   // Initialize default user if needed for testing
-  if (!localStorage.getItem("hackmap-user")) {
-    console.log("Initializing mock user data");
+  if (!localStorage.getItem("hackmap-user") || shouldReinitialize) {
+    console.log("Initializing fresh user data");
     const defaultUser = {
       id: "default-user",
-      username: "testuser",
-      email: "test@example.com",
+      username: "techstar",
+      name: "Alex Chen",
+      email: "alexchen@example.com",
       isLoggedIn: true,
-      hackathonCount: 1,
-      teamCount: 1,
+      hackathonCount: 2,
+      teamCount: 2,
       role: "attendee",
-      registeredHackathons: ["1"]
+      registeredHackathons: ["1", "2"],
+      skills: ["React", "TypeScript", "UI/UX Design", "Node.js"],
+      bio: "Full-stack developer passionate about creating impactful tech solutions. Always looking to collaborate on innovative projects!",
+      location: "San Francisco, CA",
+      github: "alexchen-dev",
+      twitter: "alexchen_tech",
+      website: "https://alexchen.example.com"
     };
     localStorage.setItem("hackmap-user", JSON.stringify(defaultUser));
   }
   
-  console.log("Mock data initialization complete");
+  // Initialize shared ideas
+  if (!localStorage.getItem("hackmap-shared-ideas") || shouldReinitialize) {
+    console.log("Initializing fresh ideas data");
+    const sharedIdeas = [
+      {
+        id: "idea-1",
+        author: "techstar",
+        authorId: "default-user",
+        title: "AR Guide for Museum Exhibits",
+        description: "A mobile app that uses augmented reality to provide interactive guides for museum exhibits. Users can point their phone at an exhibit to see additional information, historical context, and interactive 3D models.",
+        tags: ["AR/VR", "Education", "Mobile"],
+        likes: 24,
+        comments: 8,
+        createdAt: "2025-05-01T14:30:00Z",
+        lookingForTeam: true
+      },
+      {
+        id: "idea-2",
+        author: "techstar",
+        authorId: "default-user",
+        title: "Community Food Sharing Platform",
+        description: "A platform that connects restaurants and grocery stores with excess food to local shelters and food banks. The app would help reduce food waste while addressing food insecurity in communities.",
+        tags: ["Social Impact", "Mobile", "Maps"],
+        likes: 36,
+        comments: 12,
+        createdAt: "2025-04-27T09:15:00Z",
+        lookingForTeam: false
+      }
+    ];
+    localStorage.setItem("hackmap-shared-ideas", JSON.stringify(sharedIdeas));
+  }
+  
+  console.log("Fresh data initialization complete");
 };
 
 const queryClient = new QueryClient();
