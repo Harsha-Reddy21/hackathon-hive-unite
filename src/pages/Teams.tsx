@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Users, Search, Plus, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface TeamMember {
   id: string;
@@ -39,6 +50,7 @@ interface Team {
   skills: string[];
   joinRequests?: JoinRequest[];
   invitations?: Invitation[];
+  inviteCode?: string;
   createdAt?: string;
 }
 
@@ -47,6 +59,9 @@ const Teams = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [myInvitations, setMyInvitations] = useState<any[]>([]);
+  const [joinByCodeOpen, setJoinByCodeOpen] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [codeError, setCodeError] = useState("");
   const { toast } = useToast();
   
   // Load teams from localStorage
@@ -173,11 +188,11 @@ const Teams = () => {
         };
       }
       return t;
-    }) as Team[];
+    });
     
     // Update localStorage
     localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
-    setTeams(updatedTeams);
+    setTeams(updatedTeams as Team[]);
     
     toast({
       title: "Request Sent!",
@@ -194,7 +209,7 @@ const Teams = () => {
         // Find and update the invitation
         const updatedInvitations = team.invitations?.map(inv => {
           if (inv.username === currentUser.username) {
-            return { ...inv, status: "accepted" as const };
+            return { ...inv, status: "accepted" as "pending" | "accepted" | "declined" };
           }
           return inv;
         }) || [];
@@ -215,11 +230,11 @@ const Teams = () => {
         };
       }
       return team;
-    }) as Team[];
+    });
     
     // Update localStorage
     localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
-    setTeams(updatedTeams);
+    setTeams(updatedTeams as Team[]);
     
     // Remove invitation from user's list
     setMyInvitations(myInvitations.filter(inv => inv.teamId !== teamId));
@@ -228,6 +243,9 @@ const Teams = () => {
       title: "Invitation Accepted",
       description: `You have joined the team!`,
     });
+    
+    // Trigger storage event for other tabs
+    window.dispatchEvent(new Event('storage'));
   };
 
   const handleDeclineInvitation = (teamId: string) => {
@@ -239,7 +257,7 @@ const Teams = () => {
         // Find and update the invitation
         const updatedInvitations = team.invitations?.map(inv => {
           if (inv.username === currentUser.username) {
-            return { ...inv, status: "declined" as const };
+            return { ...inv, status: "declined" as "pending" | "accepted" | "declined" };
           }
           return inv;
         }) || [];
@@ -250,11 +268,11 @@ const Teams = () => {
         };
       }
       return team;
-    }) as Team[];
+    });
     
     // Update localStorage
     localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
-    setTeams(updatedTeams);
+    setTeams(updatedTeams as Team[]);
     
     // Remove invitation from user's list
     setMyInvitations(myInvitations.filter(inv => inv.teamId !== teamId));
@@ -263,6 +281,81 @@ const Teams = () => {
       title: "Invitation Declined",
       description: `You have declined the team invitation.`,
     });
+    
+    // Trigger storage event for other tabs
+    window.dispatchEvent(new Event('storage'));
+  };
+  
+  const handleJoinByCode = () => {
+    if (!currentUser) {
+      toast({
+        title: "Not Logged In",
+        description: "Please log in to join a team",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!inviteCode.trim()) {
+      setCodeError("Please enter an invite code");
+      return;
+    }
+    
+    // Find team with matching code
+    const team = teams.find(t => t.inviteCode === inviteCode.trim());
+    
+    if (!team) {
+      setCodeError("Invalid invite code. Please check and try again.");
+      return;
+    }
+    
+    // Check if user is already a member
+    if (team.members.some(member => member.id === currentUser.id)) {
+      setCodeError("You're already a member of this team");
+      return;
+    }
+    
+    // Check if team is full
+    if (team.membersCount >= team.maxMembers) {
+      setCodeError("This team has reached its maximum number of members");
+      return;
+    }
+    
+    // Add user to team
+    const updatedTeams = teams.map(t => {
+      if (t.id === team.id) {
+        return {
+          ...t,
+          members: [
+            ...t.members,
+            {
+              id: currentUser.id,
+              username: currentUser.username,
+              role: "member"
+            }
+          ],
+          membersCount: t.membersCount + 1
+        };
+      }
+      return t;
+    });
+    
+    // Update localStorage
+    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
+    setTeams(updatedTeams as Team[]);
+    
+    // Close dialog and reset fields
+    setJoinByCodeOpen(false);
+    setInviteCode("");
+    setCodeError("");
+    
+    toast({
+      title: "Team Joined",
+      description: `You have successfully joined ${team.name}!`,
+    });
+    
+    // Trigger storage event for other tabs
+    window.dispatchEvent(new Event('storage'));
   };
 
   return (
@@ -276,11 +369,54 @@ const Teams = () => {
               Find teams looking for members with your skills or create your own team
             </p>
           </div>
-          <Button asChild>
-            <Link to="/teams/create">
-              <Plus className="h-4 w-4 mr-2" /> Create Team
-            </Link>
-          </Button>
+          <div className="flex space-x-3">
+            <Dialog open={joinByCodeOpen} onOpenChange={setJoinByCodeOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Users className="h-4 w-4 mr-2" /> Join by Code
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Join Team with Invite Code</DialogTitle>
+                  <DialogDescription>
+                    Enter the invite code you received from a team leader.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Label htmlFor="inviteCode">Invite Code</Label>
+                  <Input
+                    id="inviteCode"
+                    value={inviteCode}
+                    onChange={(e) => {
+                      setInviteCode(e.target.value.toUpperCase());
+                      setCodeError("");
+                    }}
+                    placeholder="Enter code (e.g., ABC123)"
+                    className="mt-2"
+                    autoComplete="off"
+                  />
+                  {codeError && (
+                    <p className="text-red-500 text-sm mt-1">{codeError}</p>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setJoinByCodeOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleJoinByCode}>
+                    Join Team
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            <Button asChild>
+              <Link to="/teams/create">
+                <Plus className="h-4 w-4 mr-2" /> Create Team
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {myInvitations.length > 0 && (

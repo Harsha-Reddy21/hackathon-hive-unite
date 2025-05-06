@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Users } from "lucide-react";
+import { Plus, X, Users, Copy, Check, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Hackathon {
   id: string;
@@ -21,6 +22,7 @@ interface UserData {
   id: string;
   username: string;
   email: string;
+  skills?: string[];
 }
 
 const TeamCreate = () => {
@@ -35,6 +37,11 @@ const TeamCreate = () => {
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
   const [invitedUsers, setInvitedUsers] = useState<string[]>([]);
   const [usernameToInvite, setUsernameToInvite] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [showCopied, setShowCopied] = useState(false);
+  const [allUsers, setAllUsers] = useState<UserData[]>([]);
+  const [matchedUsers, setMatchedUsers] = useState<UserData[]>([]);
+  const [inviteMethod, setInviteMethod] = useState("username");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -62,7 +69,65 @@ const TeamCreate = () => {
       }));
       setHackathons(hackathonsForSelect);
     }
+    
+    // Load all users for skill matching
+    const usersData = localStorage.getItem("hackmap-users");
+    if (usersData) {
+      setAllUsers(JSON.parse(usersData));
+    }
+    
+    // Generate unique invite code
+    generateInviteCode();
   }, [toast, navigate]);
+  
+  // Generate a random invite code
+  const generateInviteCode = () => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    setInviteCode(result);
+  };
+  
+  // Copy invite code to clipboard
+  const copyInviteCode = () => {
+    navigator.clipboard.writeText(inviteCode);
+    setShowCopied(true);
+    setTimeout(() => {
+      setShowCopied(false);
+    }, 2000);
+    
+    toast({
+      title: "Code Copied",
+      description: "Invite code copied to clipboard",
+    });
+  };
+
+  useEffect(() => {
+    // Find users with matching skills
+    if (skills.length > 0 && allUsers.length > 0) {
+      const skillMatches = allUsers.filter(user => {
+        // Don't include the current user
+        if (user.id === currentUser?.id) return false;
+        
+        // Don't include already invited users
+        if (invitedUsers.includes(user.username)) return false;
+        
+        // Check if user has matching skills
+        if (!user.skills) return false;
+        
+        // User should have at least one skill that the team is looking for
+        return skills.some(skill => 
+          user.skills?.includes(skill)
+        );
+      });
+      
+      setMatchedUsers(skillMatches);
+    } else {
+      setMatchedUsers([]);
+    }
+  }, [skills, allUsers, currentUser, invitedUsers]);
 
   const addSkill = () => {
     if (currentSkill && !skills.includes(currentSkill)) {
@@ -79,7 +144,6 @@ const TeamCreate = () => {
     if (!usernameToInvite.trim()) return;
 
     // Check if username exists in the system
-    const allUsers = getAllUsers();
     const userExists = allUsers.some(user => user.username === usernameToInvite);
 
     if (!userExists) {
@@ -97,15 +161,19 @@ const TeamCreate = () => {
     }
   };
 
-  const removeInvitedUser = (username: string) => {
-    setInvitedUsers(invitedUsers.filter(u => u !== username));
+  const addMatchedUser = (username: string) => {
+    if (!invitedUsers.includes(username)) {
+      setInvitedUsers([...invitedUsers, username]);
+      
+      toast({
+        title: "User Invited",
+        description: `${username} has been added to invitations`,
+      });
+    }
   };
 
-  const getAllUsers = (): UserData[] => {
-    // This function would normally query a database, but for demo purposes,
-    // we'll use localStorage to get registered users
-    const usersData = localStorage.getItem("hackmap-users");
-    return usersData ? JSON.parse(usersData) : [];
+  const removeInvitedUser = (username: string) => {
+    setInvitedUsers(invitedUsers.filter(u => u !== username));
   };
 
   const handleCreateTeam = () => {
@@ -169,8 +237,9 @@ const TeamCreate = () => {
         invitations: invitedUsers.map(username => ({
           username,
           invitedAt: new Date().toISOString(),
-          status: "pending"
+          status: "pending" as "pending" | "accepted" | "declined"
         })),
+        inviteCode: inviteCode,
         createdAt: new Date().toISOString(),
       };
 
@@ -185,6 +254,9 @@ const TeamCreate = () => {
       userData.teams = userData.teams || [];
       userData.teams.push(newTeam.id);
       localStorage.setItem("hackmap-user", JSON.stringify(userData));
+      
+      // Trigger storage event for other tabs
+      window.dispatchEvent(new Event('storage'));
 
       toast({
         title: "Team created",
@@ -312,39 +384,120 @@ const TeamCreate = () => {
 
               <div>
                 <Label>Invite Members</Label>
-                <div className="flex items-center space-x-2 mb-2">
-                  <Input
-                    value={usernameToInvite}
-                    onChange={(e) => setUsernameToInvite(e.target.value)}
-                    placeholder="Enter username to invite"
-                    onKeyPress={(e) => e.key === "Enter" && addInvitedUser()}
-                  />
-                  <Button 
-                    type="button" 
-                    onClick={addInvitedUser}
-                    size="sm"
-                    disabled={!usernameToInvite.trim()}
-                  >
-                    <Users className="h-4 w-4" />
-                  </Button>
-                </div>
-                {invitedUsers.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {invitedUsers.map((username, index) => (
-                      <Badge
-                        key={index}
-                        className="bg-hackmap-blue/10 text-hackmap-blue px-3 py-1 rounded-full flex items-center"
+                <Tabs defaultValue="username" onValueChange={setInviteMethod}>
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="username">Invite by Username</TabsTrigger>
+                    <TabsTrigger value="code">Invite by Code</TabsTrigger>
+                    <TabsTrigger value="matching">Skill Matching</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="username" className="mt-0">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Input
+                        value={usernameToInvite}
+                        onChange={(e) => setUsernameToInvite(e.target.value)}
+                        placeholder="Enter username to invite"
+                        onKeyPress={(e) => e.key === "Enter" && addInvitedUser()}
+                      />
+                      <Button 
+                        type="button" 
+                        onClick={addInvitedUser}
+                        size="sm"
+                        disabled={!usernameToInvite.trim()}
                       >
-                        <span>{username}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeInvitedUser(username)}
-                          className="ml-2 text-hackmap-blue hover:text-hackmap-blue/70"
+                        <UserPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="code" className="mt-0">
+                    <div className="bg-gray-50 rounded-md p-4 flex flex-col space-y-4">
+                      <p className="text-sm mb-2">
+                        Share this invite code with potential team members:
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <div className="bg-white border border-gray-300 rounded px-4 py-2 font-mono text-lg flex-1 text-center">
+                          {inviteCode}
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={copyInviteCode}
+                          size="sm"
                         >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
+                          {showCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Team members can join using this code from the Teams page
+                      </p>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="matching" className="mt-0">
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        These users have skills that match your team's requirements:
+                      </p>
+                      {matchedUsers.length > 0 ? (
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {matchedUsers.map((user) => (
+                            <div 
+                              key={user.id} 
+                              className="flex justify-between items-center border rounded-md p-2"
+                            >
+                              <div>
+                                <p className="font-medium">{user.username}</p>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {user.skills?.filter(skill => skills.includes(skill)).map((skill) => (
+                                    <Badge 
+                                      key={skill}
+                                      className="bg-hackmap-purple/10 text-hackmap-purple text-xs"
+                                    >
+                                      {skill}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => addMatchedUser(user.username)}
+                              >
+                                <UserPlus className="h-3 w-3 mr-1" /> Invite
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 border rounded-md">
+                          <p className="text-muted-foreground">No skill matches found</p>
+                          <p className="text-xs mt-1">Try adding more skills or invite by username</p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+                
+                {invitedUsers.length > 0 && (
+                  <div className="mt-4">
+                    <Label className="mb-2 block">Invited Users:</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {invitedUsers.map((username, index) => (
+                        <Badge
+                          key={index}
+                          className="bg-hackmap-blue/10 text-hackmap-blue px-3 py-1 rounded-full flex items-center"
+                        >
+                          <span>{username}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeInvitedUser(username)}
+                            className="ml-2 text-hackmap-blue hover:text-hackmap-blue/70"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
