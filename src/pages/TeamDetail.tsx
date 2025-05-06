@@ -35,10 +35,10 @@ const TeamDetail: React.FC<TeamDetailProps> = () => {
         }
         
         // Parse JSON fields
-        const parsedMembers = parseMembers(teamData.members);
-        const parsedSkills = parseSkills(teamData.skills);
-        const parsedInvitations = parseInvitations(teamData.invitations);
-        const parsedJoinRequests = parseJoinRequests(teamData.join_requests);
+        const parsedMembers = parseMembers(teamData.members || null);
+        const parsedSkills = parseSkills(teamData.skills || null);
+        const parsedInvitations = parseInvitations(teamData.invitations || null);
+        const parsedJoinRequests = parseJoinRequests(teamData.join_requests || null);
         
         // Create a new team object with parsed fields
         const teamWithParsedFields = {

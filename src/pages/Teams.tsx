@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -490,7 +489,7 @@ const Teams = () => {
         return;
       }
       
-      const team = matchingTeams[0] as any;
+      const team = matchingTeams[0];
       
       // Parse members
       const members = parseMembers(team.members);
