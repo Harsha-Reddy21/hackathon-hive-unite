@@ -24,9 +24,12 @@ const HackathonDetail = () => {
       setIsLoggedIn(true);
       
       // Check if user is already registered for this hackathon
-      // In a real app, this would be fetched from API/database
-      const randomRegistered = Math.random() > 0.5;
-      setIsRegistered(randomRegistered);
+      const parsedUserData = JSON.parse(userData);
+      const registeredHackathons = parsedUserData.registeredHackathons || [];
+      setIsRegistered(registeredHackathons.includes(id));
+    } else {
+      setIsLoggedIn(false);
+      setIsRegistered(false);
     }
     
     // Find hackathon by ID
