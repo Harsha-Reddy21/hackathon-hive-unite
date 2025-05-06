@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -56,7 +55,7 @@ const Teams = () => {
       const teamsData = localStorage.getItem("hackmap-teams");
       if (teamsData) {
         const loadedTeams = JSON.parse(teamsData);
-        setTeams(loadedTeams);
+        setTeams(loadedTeams as Team[]);
       }
     };
     
@@ -174,7 +173,7 @@ const Teams = () => {
         };
       }
       return t;
-    });
+    }) as Team[];
     
     // Update localStorage
     localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
@@ -195,7 +194,7 @@ const Teams = () => {
         // Find and update the invitation
         const updatedInvitations = team.invitations?.map(inv => {
           if (inv.username === currentUser.username) {
-            return { ...inv, status: "accepted" };
+            return { ...inv, status: "accepted" as const };
           }
           return inv;
         }) || [];
@@ -216,7 +215,7 @@ const Teams = () => {
         };
       }
       return team;
-    });
+    }) as Team[];
     
     // Update localStorage
     localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
@@ -240,7 +239,7 @@ const Teams = () => {
         // Find and update the invitation
         const updatedInvitations = team.invitations?.map(inv => {
           if (inv.username === currentUser.username) {
-            return { ...inv, status: "declined" };
+            return { ...inv, status: "declined" as const };
           }
           return inv;
         }) || [];
@@ -251,7 +250,7 @@ const Teams = () => {
         };
       }
       return team;
-    });
+    }) as Team[];
     
     // Update localStorage
     localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));

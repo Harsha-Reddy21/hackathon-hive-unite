@@ -42,11 +42,11 @@ const Hackathons = () => {
         const loadedHackathons = JSON.parse(hackathonsData);
         setHackathons(loadedHackathons);
         
-        // Extract all unique tags
+        // Extract all unique tags - fix the type error by ensuring we have string[]
         const tags = Array.from(
           new Set(loadedHackathons.flatMap((hackathon: Hackathon) => hackathon.tags || []))
-        ).sort();
-        setAllTags(tags);
+        ) as string[];
+        setAllTags(tags.sort());
       }
     };
     
