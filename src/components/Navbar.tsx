@@ -81,11 +81,6 @@ const Navbar = () => {
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
-                {role === "organizer" && (
-                  <Button asChild variant="default">
-                    <Link to="/hackathons/create">Create Hackathon</Link>
-                  </Button>
-                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="rounded-full">

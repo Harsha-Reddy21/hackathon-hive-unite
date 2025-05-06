@@ -38,7 +38,8 @@ const Hackathons = () => {
     const matchesSearch =
       searchQuery === "" ||
       hackathon.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hackathon.theme.toLowerCase().includes(searchQuery.toLowerCase());
+      hackathon.theme.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      hackathon.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesTags =
       selectedTags.length === 0 ||
@@ -74,7 +75,7 @@ const Hackathons = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <Input
-                placeholder="Search hackathons by name or theme..."
+                placeholder="Search hackathons by name, theme, or skills..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
