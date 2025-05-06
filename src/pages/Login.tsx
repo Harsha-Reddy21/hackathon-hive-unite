@@ -42,37 +42,47 @@ const Login = () => {
     try {
       setIsLoading(true);
       
-      // In a real app, we would send these details to an API
-      console.log("Login with:", { email, password, rememberMe });
+      // Simulate checking credentials - in a real app with Supabase this would be a proper auth check
+      // For demo, let's at least check against localStorage data if it exists
+      const storedUserData = localStorage.getItem("hackmap-user");
       
-      // Simulating API call
-      // IMPORTANT: Using a shorter timeout to improve user experience
-      setTimeout(() => {
-        // Set user data in localStorage to simulate logged in state
-        const username = email.split('@')[0]; // Extract username from email
-        localStorage.setItem("hackmap-user", JSON.stringify({ 
-          email, 
-          username,
-          isLoggedIn: true 
-        }));
+      if (storedUserData) {
+        const userData = JSON.parse(storedUserData);
         
-        toast({
-          title: "Success!",
-          description: "You have successfully logged in.",
-        });
-        
-        setIsLoading(false);
-        
-        // Redirect to homepage after successful login - forcing a hard navigation
-        window.location.href = "/";
-      }, 1000);
+        // Check if email exists and password matches (this is unsafe, just for demo)
+        if (userData.email === email) {
+          // Here we'd normally verify the password hash, but for demo we'll just check if emails match
+          // In a real app with Supabase, this would use proper authentication
+
+          localStorage.setItem("hackmap-user", JSON.stringify({ 
+            ...userData,
+            isLoggedIn: true 
+          }));
+          
+          toast({
+            title: "Success!",
+            description: "You have successfully logged in.",
+          });
+          
+          navigate("/"); // Use navigate instead of force reload
+          return;
+        }
+      }
       
-    } catch (error) {
+      // If we get here, authentication failed
       toast({
         title: "Error",
         description: "Invalid email or password. Please try again.",
         variant: "destructive",
       });
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
     }
   };
