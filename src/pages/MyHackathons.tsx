@@ -36,7 +36,8 @@ const MyHackathons = () => {
         console.log("All hackathons:", allHackathons);
         
         // Filter registered hackathons (if any registrations exist)
-        const userRegisteredHackathonsIds = currentUser?.registered_hackathons || [];
+        // Access registered_hackathons from user_metadata if it exists
+        const userRegisteredHackathonsIds = currentUser?.user_metadata?.registered_hackathons || [];
         const registeredHackathonsData = allHackathons.filter((hackathon) => 
           userRegisteredHackathonsIds.includes(hackathon.id)
         );

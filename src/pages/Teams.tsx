@@ -20,25 +20,15 @@ import {
 import { Label } from "@/components/ui/label";
 import { supabase } from '@/integrations/supabase/client';
 import { Json } from "@/integrations/supabase/types";
-
-interface TeamMember {
-  id: string;
-  username: string;
-  role: string;
-}
-
-interface JoinRequest {
-  id: string;
-  userId: string;
-  username: string;
-  requestDate: string;
-}
-
-interface Invitation {
-  username: string;
-  invitedAt: string;
-  status: "pending" | "accepted" | "declined";
-}
+import { 
+  TeamMember, 
+  Invitation, 
+  JoinRequest, 
+  parseMembers, 
+  parseInvitations, 
+  parseJoinRequests, 
+  parseSkills 
+} from "@/utils/storageUtils";
 
 interface Team {
   id: string;
@@ -78,41 +68,12 @@ interface SupabaseTeam {
   updated_at?: string;
 }
 
-// Type guard functions to check array properties
-const isArrayOfMembers = (value: any): value is TeamMember[] => {
-  return Array.isArray(value) && value.every(item => 
-    typeof item === 'object' && 
-    'username' in item && 
-    'id' in item);
-};
-
-const isArrayOfInvitations = (value: any): value is Invitation[] => {
-  return Array.isArray(value) && value.every(item => 
-    typeof item === 'object' && 
-    'username' in item && 
-    'status' in item);
-};
-
-const isArrayOfJoinRequests = (value: any): value is JoinRequest[] => {
-  return Array.isArray(value) && value.every(item => 
-    typeof item === 'object' && 
-    'username' in item);
-};
-
-// Helper function to parse JSON strings or return the original object
-const parseJsonField = <T,>(field: string | Json | null | undefined, defaultValue: T): T => {
-  if (!field) return defaultValue;
-  
-  if (typeof field === 'string') {
-    try {
-      return JSON.parse(field) as T;
-    } catch (e) {
-      return defaultValue;
-    }
-  }
-  
-  return field as unknown as T;
-};
+interface UserData {
+  id: string;
+  username: string;
+  email: string;
+  skills?: string[];
+}
 
 const Teams = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -140,14 +101,14 @@ const Teams = () => {
         
         if (user) {
           // Get additional user data from the profiles table
-          const { data: profile } = await supabase
+          const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
             .maybeSingle();
             
-          userProfile = profile;
-          setCurrentUser({ ...user, ...profile });
+          userProfile = profileData;
+          setCurrentUser({ ...user, ...profileData });
         }
         
         // Load teams from Supabase
@@ -166,10 +127,10 @@ const Teams = () => {
         // Normalize data to handle both DB field names and client-side field names
         const normalizedTeams = teamsData.map((team: SupabaseTeam) => {
           // Parse JSON fields that may be returned as strings from the database
-          const membersArray = parseJsonField<TeamMember[]>(team.members, []);
-          const skillsArray = parseJsonField<string[]>(team.skills, []);
-          const invitationsArray = parseJsonField<Invitation[]>(team.invitations, []);
-          const joinRequestsArray = parseJsonField<JoinRequest[]>(team.join_requests, []);
+          const membersArray = parseMembers(team.members);
+          const skillsArray = parseSkills(team.skills);
+          const invitationsArray = parseInvitations(team.invitations);
+          const joinRequestsArray = parseJoinRequests(team.join_requests);
           
           const normalizedTeam: Team = {
             id: team.id,
@@ -310,7 +271,7 @@ const Teams = () => {
       }
       
       // Parse join_requests if needed
-      const joinRequests = parseJsonField<JoinRequest[]>(latestTeam.join_requests, []);
+      const joinRequests = parseJoinRequests(latestTeam.join_requests);
       
       // Check if already requested
       if (joinRequests.some((req: JoinRequest) => req.userId === currentUser.id)) {
@@ -351,7 +312,7 @@ const Teams = () => {
       setTeams(updatedTeams);
       
       // Find team leader to send email notification
-      const teamMembers = parseJsonField<TeamMember[]>(latestTeam.members, []);
+      const teamMembers = parseMembers(latestTeam.members);
       const teamLeader = teamMembers.find(member => member.role === "leader" || member.role === "Team Lead");
       
       if (teamLeader) {
@@ -386,8 +347,8 @@ const Teams = () => {
       }
       
       // Parse fields
-      const invitations = parseJsonField<Invitation[]>(team.invitations, []);
-      const members = parseJsonField<TeamMember[]>(team.members, []);
+      const invitations = parseInvitations(team.invitations);
+      const members = parseMembers(team.members);
       
       // Find and update the invitation
       const updatedInvitations = invitations.map((inv: Invitation) => {
@@ -459,7 +420,7 @@ const Teams = () => {
       }
       
       // Parse invitations
-      const invitations = parseJsonField<Invitation[]>(team.invitations, []);
+      const invitations = parseInvitations(team.invitations);
       
       // Find and update the invitation
       const updatedInvitations = invitations.map((inv: Invitation) => {
@@ -529,7 +490,7 @@ const Teams = () => {
       const team = matchingTeams[0] as SupabaseTeam;
       
       // Parse members
-      const members = parseJsonField<TeamMember[]>(team.members, []);
+      const members = parseMembers(team.members);
       
       // Check if user is already a member
       if (members.some(member => member.id === currentUser.id)) {

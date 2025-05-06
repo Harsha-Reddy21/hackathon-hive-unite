@@ -4,6 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
 // Export supabase for use in other files
 export { supabase };
@@ -39,6 +40,26 @@ export const initializeDatabase = async () => {
   }
 };
 
+// Type definitions for better type safety
+export interface TeamMember {
+  id: string;
+  username: string;
+  role: string;
+}
+
+export interface Invitation {
+  username: string;
+  invitedAt: string;
+  status: "pending" | "accepted" | "declined";
+}
+
+export interface JoinRequest {
+  id: string;
+  userId: string;
+  username: string;
+  requestDate: string;
+}
+
 // Get the current user data
 export const getCurrentUser = async () => {
   try {
@@ -60,6 +81,98 @@ export const getCurrentUser = async () => {
   }
   
   return null;
+};
+
+// Helper functions for type-safe parsing of JSON fields
+export const parseMembers = (data: Json | null): TeamMember[] => {
+  if (!data) return [];
+  
+  try {
+    if (typeof data === 'string') {
+      return JSON.parse(data);
+    }
+    
+    if (Array.isArray(data)) {
+      return data as TeamMember[];
+    }
+    
+    return [];
+  } catch (e) {
+    console.error("Error parsing members:", e);
+    return [];
+  }
+};
+
+export const parseInvitations = (data: Json | null): Invitation[] => {
+  if (!data) return [];
+  
+  try {
+    if (typeof data === 'string') {
+      return JSON.parse(data);
+    }
+    
+    if (Array.isArray(data)) {
+      return data.map(item => {
+        // Ensure the item has the correct shape
+        if (typeof item === 'object' && item !== null) {
+          const invitation = item as Record<string, any>;
+          return {
+            username: String(invitation.username || ''),
+            invitedAt: String(invitation.invitedAt || invitation.invited_at || new Date().toISOString()),
+            status: (invitation.status as "pending" | "accepted" | "declined") || "pending"
+          };
+        }
+        return {
+          username: '',
+          invitedAt: new Date().toISOString(),
+          status: "pending" as const
+        };
+      });
+    }
+    
+    return [];
+  } catch (e) {
+    console.error("Error parsing invitations:", e);
+    return [];
+  }
+};
+
+export const parseJoinRequests = (data: Json | null): JoinRequest[] => {
+  if (!data) return [];
+  
+  try {
+    if (typeof data === 'string') {
+      return JSON.parse(data);
+    }
+    
+    if (Array.isArray(data)) {
+      return data as JoinRequest[];
+    }
+    
+    return [];
+  } catch (e) {
+    console.error("Error parsing join requests:", e);
+    return [];
+  }
+};
+
+export const parseSkills = (data: Json | null): string[] => {
+  if (!data) return [];
+  
+  try {
+    if (typeof data === 'string') {
+      return JSON.parse(data);
+    }
+    
+    if (Array.isArray(data)) {
+      return data.map(skill => String(skill));
+    }
+    
+    return [];
+  } catch (e) {
+    console.error("Error parsing skills:", e);
+    return [];
+  }
 };
 
 // Update user in the database
