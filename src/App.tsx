@@ -20,6 +20,7 @@ import IdeaDetail from "./pages/IdeaDetail";
 import MyHackathons from "./pages/MyHackathons";
 import MyTeams from "./pages/MyTeams";
 import TeamCreate from "./pages/TeamCreate";
+import HackathonCreate from "./pages/HackathonCreate";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/my-hackathons" element={<MyHackathons />} />
           <Route path="/my-teams" element={<MyTeams />} />
           <Route path="/teams/create" element={<TeamCreate />} />
+          <Route path="/hackathons/create" element={<HackathonCreate />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

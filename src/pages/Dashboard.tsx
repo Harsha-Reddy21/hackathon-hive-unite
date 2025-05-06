@@ -13,11 +13,14 @@ interface UserData {
   isLoggedIn: boolean;
   hackathonCount?: number;
   teamCount?: number;
+  role?: 'organizer' | 'attendee';
+  createdHackathons?: string[];
 }
 
 const Dashboard = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [registeredHackathons, setRegisteredHackathons] = useState<any[]>([]);
+  const [createdHackathons, setCreatedHackathons] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const [sharedIdeas, setSharedIdeas] = useState<any[]>([]);
   
@@ -37,10 +40,17 @@ const Dashboard = () => {
         setSharedIdeas(userIdeas);
       }
 
-      // Fetch registered hackathons and teams from userData
+      // Fetch registered and created hackathons from userData
       const registeredHackathons = parsedUserData.registeredHackathons || [];
       const registeredHackathonsData = mockHackathons.filter(hackathon => registeredHackathons.includes(hackathon.id));
       setRegisteredHackathons(registeredHackathonsData);
+
+      // Fetch created hackathons for organizers
+      if (parsedUserData.role === 'organizer') {
+        const createdHackathons = parsedUserData.createdHackathons || [];
+        const createdHackathonsData = mockHackathons.filter(hackathon => createdHackathons.includes(hackathon.id));
+        setCreatedHackathons(createdHackathonsData);
+      }
 
       // Initialize teams
       const teamsData = [];
@@ -112,6 +122,14 @@ const Dashboard = () => {
             icon={Calendar}
             color="bg-hackmap-purple"
           />
+          {userData?.role === 'organizer' && (
+            <DashboardCard 
+              title="Created Hackathons" 
+              count={createdHackathons.length}
+              icon={Calendar}
+              color="bg-hackmap-purple"
+            />
+          )}
           <DashboardCard 
             title="View Teams" 
             count={teams.length}
@@ -217,6 +235,56 @@ const Dashboard = () => {
               )}
             </div>
           </section>
+          {userData?.role === 'organizer' && (
+            <section>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Your Created Hackathons</h2>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/my-hackathons">View All</Link>
+                </Button>
+              </div>
+              <div className="space-y-4">
+                {createdHackathons.map((hackathon) => (
+                  <Card key={hackathon.id} className="overflow-hidden">
+                    <CardHeader className="pt-4 pb-2 px-4">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-6 w-6 text-hackmap-purple" />
+                        <CardTitle>{hackathon.title}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <p className="text-gray-500 mb-4">{hackathon.description}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-purple/10 text-hackmap-purple">
+                            {new Date(hackathon.startDate).toLocaleDateString()} - {new Date(hackathon.endDate).toLocaleDateString()}
+                          </span>
+                          {hackathon.tags?.map((tag: string) => (
+                            <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-purple/5 text-hackmap-purple/90">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        <Button asChild variant="outline">
+                          <Link to={`/hackathons/${hackathon.id}`}>View Hackathon</Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {createdHackathons.length === 0 && (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <p className="text-gray-500 mb-4">You haven't created any hackathons yet.</p>
+                      <Button asChild>
+                        <Link to="/hackathons/create">Create a Hackathon</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </section>
+          )}
           <section>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Your Teams</h2>

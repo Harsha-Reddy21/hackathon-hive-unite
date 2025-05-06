@@ -69,6 +69,9 @@ const Navbar = () => {
             </Link>
             <div className="hidden sm:ml-10 sm:flex sm:space-x-8">
               <NavLink to="/" label="Home" />
+              {role === "organizer" && (
+                <NavLink to="/hackathons/create" label="Create Hackathon" />
+              )}
               <NavLink to="/hackathons" label="Hackathons" />
               <NavLink to="/teams" label="Teams" />
               <NavLink to="/ideas" label="Ideas" />
@@ -77,39 +80,46 @@ const Navbar = () => {
           
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             {isLoggedIn ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="rounded-full">
-                    <div className="flex items-center space-x-2">
-                      <div className="relative">
-                        <User className="h-6 w-6" />
-                        {role === "organizer" && (
-                          <span className="absolute -top-1 -right-1 bg-hackmap-purple text-white text-xs px-1.5 py-0.5 rounded-full">
-                            Organizer
-                          </span>
-                        )}
-                        {role === "attendee" && (
-                          <span className="absolute -top-1 -right-1 bg-hackmap-blue text-white text-xs px-1.5 py-0.5 rounded-full">
-                            Attendee
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-sm font-medium">{username}</span>
-                    </div>
+              <div className="flex items-center space-x-4">
+                {role === "organizer" && (
+                  <Button asChild variant="default">
+                    <Link to="/hackathons/create">Create Hackathon</Link>
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard">Dashboard</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="rounded-full">
+                      <div className="flex items-center space-x-2">
+                        <div className="relative">
+                          <User className="h-6 w-6" />
+                          {role === "organizer" && (
+                            <span className="absolute -top-1 -right-1 bg-hackmap-purple text-white text-xs px-1.5 py-0.5 rounded-full">
+                              Organizer
+                            </span>
+                          )}
+                          {role === "attendee" && (
+                            <span className="absolute -top-1 -right-1 bg-hackmap-blue text-white text-xs px-1.5 py-0.5 rounded-full">
+                              Attendee
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-sm font-medium">{username}</span>
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard">Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile">Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             ) : (
               <div className="flex space-x-4">
                 <Button asChild variant="outline">
