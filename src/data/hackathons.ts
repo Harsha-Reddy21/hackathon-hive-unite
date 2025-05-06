@@ -17,20 +17,29 @@ export const mockHackathons: Hackathon[] = [
     participantCount: 350,
     location: "Boston, MA",
     schedule: [
-      { date: "2025-07-15", events: [
-        { time: "09:00 AM", title: "Opening Ceremony" },
-        { time: "10:30 AM", title: "Team Formation" },
-        { time: "01:00 PM", title: "Workshops Begin" }
-      ]},
-      { date: "2025-07-16", events: [
-        { time: "09:00 AM", title: "Coding Day" },
-        { time: "06:00 PM", title: "Mentor Sessions" }
-      ]},
-      { date: "2025-07-17", events: [
-        { time: "10:00 AM", title: "Project Submissions" },
-        { time: "02:00 PM", title: "Judging" },
-        { time: "05:00 PM", title: "Award Ceremony" }
-      ]}
+      { 
+        date: "2025-07-15", 
+        events: [
+          { time: "09:00 AM", title: "Opening Ceremony" },
+          { time: "10:30 AM", title: "Team Formation" },
+          { time: "01:00 PM", title: "Workshops Begin" }
+        ]
+      },
+      { 
+        date: "2025-07-16", 
+        events: [
+          { time: "09:00 AM", title: "Coding Day" },
+          { time: "06:00 PM", title: "Mentor Sessions" }
+        ]
+      },
+      { 
+        date: "2025-07-17", 
+        events: [
+          { time: "10:00 AM", title: "Project Submissions" },
+          { time: "02:00 PM", title: "Judging" },
+          { time: "05:00 PM", title: "Award Ceremony" }
+        ]
+      }
     ]
   },
   {
@@ -48,17 +57,26 @@ export const mockHackathons: Hackathon[] = [
     participantCount: 280,
     location: "Seattle, WA",
     schedule: [
-      { date: "2025-08-20", events: [
-        { time: "10:00 AM", title: "Kickoff and Team Formation" },
-        { time: "02:00 PM", title: "Sustainability Workshop" }
-      ]},
-      { date: "2025-08-21", events: [
-        { time: "All Day", title: "Hacking and Mentoring" }
-      ]},
-      { date: "2025-08-22", events: [
-        { time: "11:00 AM", title: "Project Submissions" },
-        { time: "03:00 PM", title: "Demo Day and Awards" }
-      ]}
+      { 
+        date: "2025-08-20", 
+        events: [
+          { time: "10:00 AM", title: "Kickoff and Team Formation" },
+          { time: "02:00 PM", title: "Sustainability Workshop" }
+        ]
+      },
+      { 
+        date: "2025-08-21", 
+        events: [
+          { time: "All Day", title: "Hacking and Mentoring" }
+        ]
+      },
+      { 
+        date: "2025-08-22", 
+        events: [
+          { time: "11:00 AM", title: "Project Submissions" },
+          { time: "03:00 PM", title: "Demo Day and Awards" }
+        ]
+      }
     ]
   },
   {
@@ -76,20 +94,29 @@ export const mockHackathons: Hackathon[] = [
     participantCount: 220,
     location: "Minneapolis, MN",
     schedule: [
-      { date: "2025-09-10", events: [
-        { time: "08:30 AM", title: "Registration" },
-        { time: "09:30 AM", title: "Opening Remarks" },
-        { time: "10:30 AM", title: "Healthcare Challenges Presentation" }
-      ]},
-      { date: "2025-09-11", events: [
-        { time: "09:00 AM", title: "Hacking Continues" },
-        { time: "02:00 PM", title: "Healthcare Expert Office Hours" }
-      ]},
-      { date: "2025-09-12", events: [
-        { time: "10:00 AM", title: "Final Submissions" },
-        { time: "01:00 PM", title: "Presentations to Judges" },
-        { time: "04:30 PM", title: "Awards Ceremony" }
-      ]}
+      { 
+        date: "2025-09-10", 
+        events: [
+          { time: "08:30 AM", title: "Registration" },
+          { time: "09:30 AM", title: "Opening Remarks" },
+          { time: "10:30 AM", title: "Healthcare Challenges Presentation" }
+        ]
+      },
+      { 
+        date: "2025-09-11", 
+        events: [
+          { time: "09:00 AM", title: "Hacking Continues" },
+          { time: "02:00 PM", title: "Healthcare Expert Office Hours" }
+        ]
+      },
+      { 
+        date: "2025-09-12", 
+        events: [
+          { time: "10:00 AM", title: "Final Submissions" },
+          { time: "01:00 PM", title: "Presentations to Judges" },
+          { time: "04:30 PM", title: "Awards Ceremony" }
+        ]
+      }
     ]
   },
   {
@@ -107,18 +134,27 @@ export const mockHackathons: Hackathon[] = [
     participantCount: 190,
     location: "Austin, TX",
     schedule: [
-      { date: "2025-10-05", events: [
-        { time: "09:00 AM", title: "Welcome and Team Building" },
-        { time: "12:00 PM", title: "Education Workshop" }
-      ]},
-      { date: "2025-10-06", events: [
-        { time: "All Day", title: "Hacking and Mentorship" }
-      ]},
-      { date: "2025-10-07", events: [
-        { time: "09:00 AM", title: "Submission Deadline" },
-        { time: "11:00 AM", title: "Demos and Judging" },
-        { time: "03:00 PM", title: "Closing and Awards" }
-      ]}
+      { 
+        date: "2025-10-05", 
+        events: [
+          { time: "09:00 AM", title: "Welcome and Team Building" },
+          { time: "12:00 PM", title: "Education Workshop" }
+        ]
+      },
+      { 
+        date: "2025-10-06", 
+        events: [
+          { time: "All Day", title: "Hacking and Mentorship" }
+        ]
+      },
+      { 
+        date: "2025-10-07", 
+        events: [
+          { time: "09:00 AM", title: "Submission Deadline" },
+          { time: "11:00 AM", title: "Demos and Judging" },
+          { time: "03:00 PM", title: "Closing and Awards" }
+        ]
+      }
     ]
   },
   {
@@ -136,20 +172,29 @@ export const mockHackathons: Hackathon[] = [
     participantCount: 310,
     location: "New York, NY",
     schedule: [
-      { date: "2025-11-12", events: [
-        { time: "10:00 AM", title: "Opening Ceremony" },
-        { time: "11:30 AM", title: "Financial Inclusion Panel" },
-        { time: "01:30 PM", title: "Hacking Begins" }
-      ]},
-      { date: "2025-11-13", events: [
-        { time: "09:00 AM", title: "Mentor Sessions" },
-        { time: "04:00 PM", title: "Progress Check-in" }
-      ]},
-      { date: "2025-11-14", events: [
-        { time: "10:00 AM", title: "Submission Deadline" },
-        { time: "12:30 PM", title: "Demo Day" },
-        { time: "05:00 PM", title: "Fintech Awards" }
-      ]}
+      { 
+        date: "2025-11-12", 
+        events: [
+          { time: "10:00 AM", title: "Opening Ceremony" },
+          { time: "11:30 AM", title: "Financial Inclusion Panel" },
+          { time: "01:30 PM", title: "Hacking Begins" }
+        ]
+      },
+      { 
+        date: "2025-11-13", 
+        events: [
+          { time: "09:00 AM", title: "Mentor Sessions" },
+          { time: "04:00 PM", title: "Progress Check-in" }
+        ]
+      },
+      { 
+        date: "2025-11-14", 
+        events: [
+          { time: "10:00 AM", title: "Submission Deadline" },
+          { time: "12:30 PM", title: "Demo Day" },
+          { time: "05:00 PM", title: "Fintech Awards" }
+        ]
+      }
     ]
   }
 ];

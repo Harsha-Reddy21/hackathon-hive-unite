@@ -60,13 +60,13 @@ const HackathonDetail = () => {
             ". Teams will collaborate to build innovative solutions addressing real-world challenges. " +
             "This event brings together developers, designers, and problem solvers for 48 hours of creativity and coding.",
           schedule: foundHackathon.schedule || [
-            { time: "Day 1, 9:00 AM", activity: "Opening Ceremony" },
-            { time: "Day 1, 10:00 AM", activity: "Team Formation" },
-            { time: "Day 1, 12:00 PM", activity: "Lunch Break" },
-            { time: "Day 1, 1:00 PM", activity: "Hacking Begins" },
-            { time: "Day 2, 12:00 PM", activity: "Project Submission Deadline" },
-            { time: "Day 2, 2:00 PM", activity: "Judging" },
-            { time: "Day 2, 4:00 PM", activity: "Awards Ceremony" }
+            { date: "Day 1, 9:00 AM", events: [{ time: "9:00 AM", title: "Opening Ceremony" }] },
+            { date: "Day 1, 10:00 AM", events: [{ time: "10:00 AM", title: "Team Formation" }] },
+            { date: "Day 1, 12:00 PM", events: [{ time: "12:00 PM", title: "Lunch Break" }] },
+            { date: "Day 1, 1:00 PM", events: [{ time: "1:00 PM", title: "Hacking Begins" }] },
+            { date: "Day 2, 12:00 PM", events: [{ time: "12:00 PM", title: "Project Submission Deadline" }] },
+            { date: "Day 2, 2:00 PM", events: [{ time: "2:00 PM", title: "Judging" }] },
+            { date: "Day 2, 4:00 PM", events: [{ time: "4:00 PM", title: "Awards Ceremony" }] }
           ],
           prizes: foundHackathon.prizes || [
             { place: "1st Place", reward: "$5,000 and mentorship opportunities" },
@@ -339,10 +339,17 @@ const HackathonDetail = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {hackathon.schedule && hackathon.schedule.map((item: any, index: number) => (
-                    <div key={index} className="flex">
-                      <div className="w-1/4 font-medium">{item.time}</div>
-                      <div className="w-3/4">{item.activity}</div>
+                  {hackathon.schedule && hackathon.schedule.map((day, dayIndex) => (
+                    <div key={dayIndex} className="mb-6">
+                      <h3 className="font-semibold text-lg mb-3">{day.date}</h3>
+                      <div className="space-y-3 pl-4 border-l-2 border-gray-200">
+                        {day.events.map((event, eventIndex) => (
+                          <div key={eventIndex} className="flex">
+                            <div className="w-1/4 font-medium">{event.time}</div>
+                            <div className="w-3/4">{event.title}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>

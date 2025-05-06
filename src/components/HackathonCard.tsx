@@ -1,3 +1,4 @@
+
 import { Calendar, Award, Tag, Users } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,10 @@ export interface Hackathon {
   website?: string;
   teams?: string[];
   sponsors?: string[];
-  schedule?: { time: string; activity: string }[];
+  schedule?: { 
+    date: string;
+    events: { time: string; title: string }[] 
+  }[];
 }
 
 interface HackathonCardProps {
