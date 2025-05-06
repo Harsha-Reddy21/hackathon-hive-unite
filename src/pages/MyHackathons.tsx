@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { initializeLocalStorage } from "@/utils/storageUtils";
 
 const MyHackathons = () => {
   const [registeredHackathons, setRegisteredHackathons] = useState<any[]>([]);
@@ -15,6 +15,9 @@ const MyHackathons = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Initialize localStorage if needed
+    initializeLocalStorage();
+    
     // Get user data to check if logged in
     const storedUserData = localStorage.getItem("hackmap-user");
     if (!storedUserData) {
@@ -25,6 +28,7 @@ const MyHackathons = () => {
     // Parse user data
     const parsedUserData = JSON.parse(storedUserData);
     setUserData(parsedUserData);
+    console.log("Current user data:", parsedUserData);
 
     // Get all hackathons from localStorage
     const hackathonsData = localStorage.getItem("hackmap-hackathons");
@@ -32,56 +36,95 @@ const MyHackathons = () => {
     if (hackathonsData) {
       const allHackathons = JSON.parse(hackathonsData);
       console.log("All hackathons:", allHackathons);
-      console.log("Current user:", parsedUserData);
       
       // Filter registered hackathons
       const userRegisteredHackathons = parsedUserData.registeredHackathons || [];
       console.log("User registered hackathons IDs:", userRegisteredHackathons);
       
-      const registeredHackathonsData = allHackathons.filter((hackathon: any) => 
-        userRegisteredHackathons.includes(hackathon.id)
+      const registeredHackathonsData = allHackathons.filter((hackathon) => 
+        userRegisteredHackathons && userRegisteredHackathons.includes(hackathon.id)
       );
       console.log("Filtered registered hackathons:", registeredHackathonsData);
       setRegisteredHackathons(registeredHackathonsData);
       
       // Filter created hackathons (if user is an organizer)
-      if (parsedUserData.role === 'organizer') {
-        console.log("User is organizer, filtering created hackathons");
-        const createdHackathonsData = allHackathons.filter((hackathon: any) => {
-          console.log("Checking hackathon:", hackathon.id, hackathon.organizer);
-          // Handle both string and object organizer formats
-          if (!hackathon.organizer) return false;
-          
-          if (typeof hackathon.organizer === 'string') {
-            return hackathon.organizer === parsedUserData.username;
-          } else if (typeof hackathon.organizer === 'object') {
-            return hackathon.organizer.username === parsedUserData.username;
-          }
-          
-          return false;
-        });
+      const createdHackathonsData = allHackathons.filter((hackathon) => {
+        console.log("Checking hackathon:", hackathon.id, hackathon.organizer);
         
-        console.log("Filtered created hackathons:", createdHackathonsData);
-        setCreatedHackathons(createdHackathonsData);
-      }
+        if (!hackathon.organizer) return false;
+        
+        if (typeof hackathon.organizer === 'string') {
+          return hackathon.organizer === parsedUserData.username;
+        } else if (typeof hackathon.organizer === 'object') {
+          return hackathon.organizer.username === parsedUserData.username;
+        }
+        
+        return false;
+      });
+      
+      console.log("Filtered created hackathons:", createdHackathonsData);
+      setCreatedHackathons(createdHackathonsData);
     } else {
       // If no hackathons data exists, initialize with empty array
       localStorage.setItem("hackmap-hackathons", JSON.stringify([]));
-      toast({
-        title: "No hackathons found",
-        description: "Create or register for hackathons to see them here.",
-      });
     }
     
     setIsLoading(false);
   }, [toast]);
 
   // Helper function to safely render the organizer
-  const renderOrganizer = (organizer: any) => {
+  const renderOrganizer = (organizer) => {
     if (!organizer) return "Unknown";
     if (typeof organizer === 'object') return organizer.username;
     return organizer;
   };
+
+  // Handle the storage event to update data when localStorage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      console.log("Storage change detected, updating hackathons");
+      
+      // Get updated user data
+      const updatedUserData = localStorage.getItem("hackmap-user");
+      if (!updatedUserData) return;
+      
+      const parsedUserData = JSON.parse(updatedUserData);
+      setUserData(parsedUserData);
+      
+      // Get updated hackathons
+      const hackathonsData = localStorage.getItem("hackmap-hackathons");
+      if (!hackathonsData) return;
+      
+      const allHackathons = JSON.parse(hackathonsData);
+      
+      // Update registered hackathons
+      const userRegisteredHackathons = parsedUserData.registeredHackathons || [];
+      const registeredHackathonsData = allHackathons.filter((hackathon) => 
+        userRegisteredHackathons && userRegisteredHackathons.includes(hackathon.id)
+      );
+      setRegisteredHackathons(registeredHackathonsData);
+      
+      // Update created hackathons
+      const createdHackathonsData = allHackathons.filter((hackathon) => {
+        if (!hackathon.organizer) return false;
+        
+        if (typeof hackathon.organizer === 'string') {
+          return hackathon.organizer === parsedUserData.username;
+        } else if (typeof hackathon.organizer === 'object') {
+          return hackathon.organizer.username === parsedUserData.username;
+        }
+        
+        return false;
+      });
+      setCreatedHackathons(createdHackathonsData);
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   if (isLoading) {
     return (

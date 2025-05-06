@@ -89,6 +89,8 @@ const HackathonCreate = () => {
         participantCount: 0
       };
 
+      console.log("Creating new hackathon:", newHackathon);
+
       // Get existing hackathons or initialize empty array
       const existingHackathons = localStorage.getItem("hackmap-hackathons");
       const hackathons = existingHackathons ? JSON.parse(existingHackathons) : [];
@@ -106,6 +108,16 @@ const HackathonCreate = () => {
       currentUser.createdHackathons.push(newHackathon.id);
       localStorage.setItem("hackmap-user", JSON.stringify(currentUser));
 
+      // Update all users storage with the updated user
+      const allUsersData = localStorage.getItem("hackmap-all-users");
+      if (allUsersData) {
+        const allUsers = JSON.parse(allUsersData);
+        const updatedAllUsers = allUsers.map((u) => 
+          u.id === currentUser.id ? currentUser : u
+        );
+        localStorage.setItem("hackmap-all-users", JSON.stringify(updatedAllUsers));
+      }
+
       toast({
         title: "Success",
         description: "Hackathon created successfully!",
@@ -115,13 +127,14 @@ const HackathonCreate = () => {
       window.dispatchEvent(new Event('storage'));
 
       // Navigate to hackathons page
-      navigate("/hackathons");
+      navigate("/my-hackathons");
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create hackathon",
         variant: "destructive",
       });
+      console.error("Error creating hackathon:", error);
     } finally {
       setIsLoading(false);
     }

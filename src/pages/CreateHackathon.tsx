@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -44,13 +45,10 @@ const CreateHackathon = () => {
       }
 
       const parsedUserData = JSON.parse(userData);
-      if (!parsedUserData.isOrganizer) {
-        throw new Error("User is not an organizer");
-      }
 
       // Create new hackathon
       const newHackathon = {
-        id: Date.now().toString(),
+        id: `hackathon-${Date.now()}`,
         title,
         theme,
         description,
@@ -59,36 +57,59 @@ const CreateHackathon = () => {
         location,
         tags: tags.filter(tag => tag.trim()),
         prizes: prizes.filter(prize => prize.trim()),
-        organizer: parsedUserData.username,
+        organizer: {
+          id: parsedUserData.id || `user-${Date.now()}`,
+          username: parsedUserData.username
+        },
         createdAt: new Date().toISOString(),
-        status: "draft"
+        status: "active",
+        participants: [],
+        teams: [],
+        isActive: true,
+        participantCount: 0
       };
 
-      // Save hackathon to localStorage (in a real app, this would go to a database)
+      console.log("Creating new hackathon:", newHackathon);
+
+      // Save hackathon to localStorage
       const storedHackathons = localStorage.getItem("hackmap-hackathons") || "[]";
       const hackathons = JSON.parse(storedHackathons);
       hackathons.push(newHackathon);
       localStorage.setItem("hackmap-hackathons", JSON.stringify(hackathons));
 
       // Update user's organized hackathons
-      const updatedUserData = {
-        ...parsedUserData,
-        organizedHackathons: [...(parsedUserData.organizedHackathons || []), newHackathon.id]
-      };
-      localStorage.setItem("hackmap-user", JSON.stringify(updatedUserData));
+      if (!parsedUserData.createdHackathons) {
+        parsedUserData.createdHackathons = [];
+      }
+      parsedUserData.createdHackathons.push(newHackathon.id);
+      localStorage.setItem("hackmap-user", JSON.stringify(parsedUserData));
+      
+      // Update all users storage with the updated user
+      const allUsersData = localStorage.getItem("hackmap-all-users");
+      if (allUsersData) {
+        const allUsers = JSON.parse(allUsersData);
+        const updatedAllUsers = allUsers.map((u) => 
+          u.id === parsedUserData.id ? parsedUserData : u
+        );
+        localStorage.setItem("hackmap-all-users", JSON.stringify(updatedAllUsers));
+      }
+
+      // Trigger a storage event so other tabs update
+      window.dispatchEvent(new Event('storage'));
 
       toast({
         title: "Success",
         description: "Hackathon created successfully!",
       });
 
-      navigate("/dashboard");
+      navigate("/my-hackathons");
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create hackathon. Please try again.",
         variant: "destructive",
       });
+      console.error("Error creating hackathon:", error);
     } finally {
       setIsLoading(false);
     }

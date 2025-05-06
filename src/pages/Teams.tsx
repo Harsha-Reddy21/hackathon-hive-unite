@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { sendTeamInviteEmail, sendJoinRequestEmail } from "@/utils/emailService";
+import { initializeLocalStorage } from "@/utils/storageUtils";
 
 interface TeamMember {
   id: string;
@@ -66,18 +67,27 @@ const Teams = () => {
   
   // Load teams from localStorage
   useEffect(() => {
+    // Initialize localStorage if needed
+    initializeLocalStorage();
+    
     const loadTeams = () => {
+      console.log("Loading teams data");
       const teamsData = localStorage.getItem("hackmap-teams");
       if (teamsData) {
         const loadedTeams = JSON.parse(teamsData);
+        console.log("Loaded teams:", loadedTeams);
         setTeams(loadedTeams as Team[]);
+      } else {
+        localStorage.setItem("hackmap-teams", JSON.stringify([]));
       }
     };
     
     const loadCurrentUser = () => {
+      console.log("Loading current user data");
       const userData = localStorage.getItem("hackmap-user");
       if (userData) {
         const user = JSON.parse(userData);
+        console.log("Current user:", user);
         setCurrentUser(user);
         
         // Check for invitations for this user
@@ -102,6 +112,7 @@ const Teams = () => {
             }
           }
           
+          console.log("User invitations:", invitations);
           setMyInvitations(invitations);
         }
       }
@@ -204,9 +215,10 @@ const Teams = () => {
       }
     }
     
-    // Update localStorage
+    // Update localStorage and trigger storage event
     localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
     setTeams(updatedTeams as Team[]);
+    window.dispatchEvent(new Event('storage'));
     
     toast({
       title: "Request Sent!",

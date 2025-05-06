@@ -1,5 +1,19 @@
-import { createRoot } from 'react-dom/client'
+
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { Toaster } from "@/components/ui/toaster"
+import { initializeLocalStorage } from '@/utils/storageUtils'
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Initialize localStorage data structures
+initializeLocalStorage();
+
+console.info("Data initialization successful");
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+    <Toaster />
+  </React.StrictMode>,
+)
