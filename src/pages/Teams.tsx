@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { sendTeamInviteEmail, sendJoinRequestEmail } from "@/utils/emailService";
-import { getAllTeams, getCurrentUser, updateTeamInStorage, initializeLocalStorage, supabase } from "@/utils/storageUtils";
+import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
 
 interface TeamMember {
@@ -46,9 +46,7 @@ interface Team {
   id: string;
   name: string;
   hackathon_id?: string;
-  hackathonId?: string; // For backwards compatibility
   hackathon_name?: string;
-  hackathonName?: string; // For backwards compatibility
   description: string;
   members: TeamMember[];
   membersCount: number;
@@ -57,8 +55,8 @@ interface Team {
   members_count?: number; // For database mapping
   skills: string[];
   joinRequests?: JoinRequest[];
-  join_requests?: JoinRequest[] | any; // For database mapping
-  invitations?: Invitation[] | any;
+  join_requests?: JoinRequest[] | Json; // For database mapping
+  invitations?: Invitation[] | Json;
   inviteCode?: string;
   invite_code?: string; // For database mapping
   createdAt?: string;
@@ -116,16 +114,37 @@ const Teams = () => {
   
   // Load teams from Supabase
   useEffect(() => {
-    // Initialize storage if needed
-    initializeLocalStorage();
-    
     const loadData = async () => {
       setIsLoading(true);
       try {
         console.log("Loading teams and user data");
         
+        // Load current user
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log("Current user:", user);
+        
+        if (user) {
+          // Get additional user data from the profiles table
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+            
+          setCurrentUser({ ...user, ...profile });
+        }
+        
         // Load teams from Supabase
-        const teamsData = await getAllTeams();
+        const { data: teamsData, error } = await supabase
+          .from('teams')
+          .select('*');
+          
+        if (error) {
+          console.error("Error loading teams:", error);
+          toast.error("Failed to load teams");
+          return;
+        }
+        
         console.log("Teams loaded:", teamsData);
         
         // Normalize data to handle both DB field names and client-side field names
@@ -135,7 +154,9 @@ const Teams = () => {
           try {
             if (typeof team.members === 'string') {
               members = JSON.parse(team.members as string);
-            } else if (Array.isArray(team.members)) {
+            } else if (team.members && Array.isArray(team.members)) {
+              members = team.members as unknown as TeamMember[];
+            } else if (team.members && typeof team.members === 'object') {
               members = team.members as unknown as TeamMember[];
             }
           } catch (e) {
@@ -146,7 +167,9 @@ const Teams = () => {
           try {
             if (typeof team.skills === 'string') {
               skills = JSON.parse(team.skills as string);
-            } else if (Array.isArray(team.skills)) {
+            } else if (team.skills && Array.isArray(team.skills)) {
+              skills = team.skills as unknown as string[];
+            } else if (team.skills && typeof team.skills === 'object') {
               skills = team.skills as unknown as string[];
             }
           } catch (e) {
@@ -157,7 +180,9 @@ const Teams = () => {
           try {
             if (typeof team.invitations === 'string') {
               invitations = JSON.parse(team.invitations as string);
-            } else if (team.invitations) {
+            } else if (team.invitations && Array.isArray(team.invitations)) {
+              invitations = team.invitations as unknown as Invitation[];
+            } else if (team.invitations && typeof team.invitations === 'object') {
               invitations = team.invitations as unknown as Invitation[];
             }
           } catch (e) {
@@ -168,7 +193,9 @@ const Teams = () => {
           try {
             if (typeof team.join_requests === 'string') {
               joinRequests = JSON.parse(team.join_requests as string);
-            } else if (team.join_requests) {
+            } else if (team.join_requests && Array.isArray(team.join_requests)) {
+              joinRequests = team.join_requests as unknown as JoinRequest[];
+            } else if (team.join_requests && typeof team.join_requests === 'object') {
               joinRequests = team.join_requests as unknown as JoinRequest[];
             }
           } catch (e) {
@@ -177,12 +204,10 @@ const Teams = () => {
           
           const normalizedTeam: Team = {
             ...team,
-            hackathonId: team.hackathon_id || team.hackathonId,
-            hackathonName: team.hackathon_name || team.hackathonName,
             members: members,
             membersCount: team.members_count || members.length || 0,
             maxMembers: team.max_members || 5,
-            inviteCode: team.invite_code || team.inviteCode,
+            inviteCode: team.invite_code,
             skills: skills,
             invitations: invitations,
             joinRequests: joinRequests
@@ -193,19 +218,15 @@ const Teams = () => {
         
         setTeams(normalizedTeams);
         
-        // Load current user
-        const user = await getCurrentUser();
-        console.log("Current user:", user);
-        setCurrentUser(user);
-        
         // Check for invitations for this user
         if (user) {
           const invitations = [];
           
           for (const team of normalizedTeams) {
-            if (Array.isArray(team.invitations)) {
-              const userInvitation = team.invitations.find(
-                (inv: Invitation) => inv.username === user.username && inv.status === "pending"
+            const userInvitations = team.invitations;
+            if (Array.isArray(userInvitations)) {
+              const userInvitation = userInvitations.find(
+                (inv: Invitation) => inv.username === profile?.username && inv.status === "pending"
               );
               
               if (userInvitation) {
@@ -235,8 +256,17 @@ const Teams = () => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          const user = await getCurrentUser();
-          setCurrentUser(user);
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            // Get additional user data from the profiles table
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', user.id)
+              .maybeSingle();
+              
+            setCurrentUser({ ...user, ...profile });
+          }
         } else if (event === 'SIGNED_OUT') {
           setCurrentUser(null);
         }
@@ -254,7 +284,7 @@ const Teams = () => {
       const nameMatch = team.name.toLowerCase().includes(searchQuery.toLowerCase());
       const descMatch = team.description.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const hackathonNameStr = (team.hackathonName || team.hackathon_name || "");
+      const hackathonNameStr = (team.hackathon_name || "");
       const hackathonMatch = hackathonNameStr.toLowerCase().includes(searchQuery.toLowerCase());
       
       const skillsMatch = Array.isArray(team.skills) && team.skills.some((skill) => 
@@ -298,13 +328,14 @@ const Teams = () => {
     // Add request to team
     try {
       // Get the latest team data from the database
-      const { data: latestTeam } = await supabase
+      const { data: latestTeam, error: getError } = await supabase
         .from('teams')
         .select('*')
         .eq('id', team.id)
         .maybeSingle();
       
-      if (!latestTeam) {
+      if (getError || !latestTeam) {
+        console.error("Error fetching team:", getError);
         toast.error("Team not found");
         return;
       }
@@ -314,7 +345,9 @@ const Teams = () => {
       try {
         if (typeof latestTeam.join_requests === 'string') {
           joinRequests = JSON.parse(latestTeam.join_requests as string);
-        } else if (Array.isArray(latestTeam.join_requests)) {
+        } else if (latestTeam.join_requests && Array.isArray(latestTeam.join_requests)) {
+          joinRequests = latestTeam.join_requests as unknown as JoinRequest[];
+        } else if (latestTeam.join_requests && typeof latestTeam.join_requests === 'object') {
           joinRequests = latestTeam.join_requests as unknown as JoinRequest[];
         }
       } catch (e) {
@@ -343,14 +376,13 @@ const Teams = () => {
       ];
       
       // Update the team
-      const { data: updatedTeam, error } = await supabase
+      const { error: updateError } = await supabase
         .from('teams')
         .update({ join_requests: updatedRequests })
-        .eq('id', team.id)
-        .select();
+        .eq('id', team.id);
       
-      if (error) {
-        console.error("Error updating team:", error);
+      if (updateError) {
+        console.error("Error updating team:", updateError);
         toast.error("Failed to send join request");
         return;
       }
@@ -395,13 +427,14 @@ const Teams = () => {
     
     try {
       // Find the team
-      const { data: team } = await supabase
+      const { data: team, error: getError } = await supabase
         .from('teams')
         .select('*')
         .eq('id', teamId)
         .maybeSingle();
       
-      if (!team) {
+      if (getError || !team) {
+        console.error("Error fetching team:", getError);
         toast.error("Team not found");
         return;
       }
@@ -411,7 +444,9 @@ const Teams = () => {
       try {
         if (typeof team.invitations === 'string') {
           invitations = JSON.parse(team.invitations as string);
-        } else if (team.invitations) {
+        } else if (team.invitations && Array.isArray(team.invitations)) {
+          invitations = team.invitations as unknown as Invitation[];
+        } else if (team.invitations && typeof team.invitations === 'object') {
           invitations = team.invitations as unknown as Invitation[];
         }
       } catch (e) {
@@ -423,7 +458,9 @@ const Teams = () => {
       try {
         if (typeof team.members === 'string') {
           members = JSON.parse(team.members as string);
-        } else if (team.members) {
+        } else if (team.members && Array.isArray(team.members)) {
+          members = team.members as unknown as TeamMember[];
+        } else if (team.members && typeof team.members === 'object') {
           members = team.members as unknown as TeamMember[];
         }
       } catch (e) {
@@ -449,7 +486,7 @@ const Teams = () => {
       ];
       
       // Update the team in the database
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('teams')
         .update({ 
           invitations: updatedInvitations,
@@ -458,8 +495,8 @@ const Teams = () => {
         })
         .eq('id', teamId);
       
-      if (error) {
-        console.error("Error accepting invitation:", error);
+      if (updateError) {
+        console.error("Error accepting invitation:", updateError);
         toast.error("Failed to accept invitation");
         return;
       }
@@ -487,13 +524,14 @@ const Teams = () => {
     
     try {
       // Find the team
-      const { data: team } = await supabase
+      const { data: team, error: getError } = await supabase
         .from('teams')
         .select('*')
         .eq('id', teamId)
         .maybeSingle();
       
-      if (!team) {
+      if (getError || !team) {
+        console.error("Error fetching team:", getError);
         toast.error("Team not found");
         return;
       }
@@ -503,7 +541,9 @@ const Teams = () => {
       try {
         if (typeof team.invitations === 'string') {
           invitations = JSON.parse(team.invitations as string);
-        } else if (team.invitations) {
+        } else if (team.invitations && Array.isArray(team.invitations)) {
+          invitations = team.invitations as unknown as Invitation[];
+        } else if (team.invitations && typeof team.invitations === 'object') {
           invitations = team.invitations as unknown as Invitation[];
         }
       } catch (e) {
@@ -519,13 +559,13 @@ const Teams = () => {
       });
       
       // Update the team in the database
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('teams')
         .update({ invitations: updatedInvitations })
         .eq('id', teamId);
       
-      if (error) {
-        console.error("Error declining invitation:", error);
+      if (updateError) {
+        console.error("Error declining invitation:", updateError);
         toast.error("Failed to decline invitation");
         return;
       }
@@ -583,7 +623,9 @@ const Teams = () => {
       try {
         if (typeof team.members === 'string') {
           members = JSON.parse(team.members as string);
-        } else if (team.members) {
+        } else if (team.members && Array.isArray(team.members)) {
+          members = team.members as unknown as TeamMember[];
+        } else if (team.members && typeof team.members === 'object') {
           members = team.members as unknown as TeamMember[];
         }
       } catch (e) {
@@ -778,7 +820,7 @@ const Teams = () => {
                       {team.membersCount}/{team.maxMembers} Members
                     </Badge>
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">{team.hackathonName}</p>
+                  <p className="text-sm text-muted-foreground">{team.hackathon_name}</p>
                 </CardHeader>
                 <CardContent className="pb-3">
                   <p className="text-sm mb-4">{team.description}</p>

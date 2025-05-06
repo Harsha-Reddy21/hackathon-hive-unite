@@ -13,11 +13,12 @@ import { Plus, X, Users, Copy, Check, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { addTeamToStorage } from "@/utils/storageUtils";
+import { toast } from "sonner";
 
 interface Hackathon {
   id: string;
   title: string;
+  name?: string;
 }
 
 interface UserData {
@@ -44,22 +45,39 @@ const TeamCreate = () => {
   const [allUsers, setAllUsers] = useState<UserData[]>([]);
   const [matchedUsers, setMatchedUsers] = useState<UserData[]>([]);
   const [inviteMethod, setInviteMethod] = useState("username");
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     // Load user data
-    const userData = localStorage.getItem("hackmap-user");
-    if (!userData) {
-      toast({
-        title: "Not logged in",
-        description: "You must be logged in to create a team",
-        variant: "destructive",
+    const loadUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        uiToast({
+          title: "Not logged in",
+          description: "You must be logged in to create a team",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+      
+      // Get profile data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+        
+      setCurrentUser({
+        id: user.id,
+        username: profile?.username || user.email || '',
+        email: profile?.email || user.email || '',
+        skills: []
       });
-      navigate("/login");
-      return;
-    }
-    setCurrentUser(JSON.parse(userData));
+    };
+    
+    loadUserData();
 
     // Load hackathons from Supabase
     const fetchHackathons = async () => {
@@ -76,37 +94,42 @@ const TeamCreate = () => {
             title: h.name
           }));
           setHackathons(hackathonsForSelect);
-          
-          // Also update localStorage for backwards compatibility
-          localStorage.setItem("hackmap-hackathons", JSON.stringify(hackathonData));
         }
       } catch (err) {
         console.error("Error fetching hackathons:", err);
-        
-        // Fallback to localStorage
-        const hackathonsData = localStorage.getItem("hackmap-hackathons");
-        if (hackathonsData) {
-          const loadedHackathons = JSON.parse(hackathonsData);
-          const hackathonsForSelect = loadedHackathons.map((h: any) => ({
-            id: h.id,
-            title: h.title || h.name,
-          }));
-          setHackathons(hackathonsForSelect);
-        }
+        toast.error("Failed to load hackathons");
       }
     };
     
     fetchHackathons();
     
     // Load all users for skill matching
-    const usersData = localStorage.getItem("hackmap-users");
-    if (usersData) {
-      setAllUsers(JSON.parse(usersData));
-    }
+    const fetchUsers = async () => {
+      try {
+        const { data: userData, error } = await supabase
+          .from('profiles')
+          .select('*');
+          
+        if (error) throw error;
+        
+        if (userData) {
+          setAllUsers(userData.map(user => ({
+            id: user.id,
+            username: user.username || '',
+            email: user.email || '',
+            skills: []
+          })));
+        }
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      }
+    };
+    
+    fetchUsers();
     
     // Generate unique invite code
     generateInviteCode();
-  }, [toast, navigate]);
+  }, [toast, navigate, uiToast]);
   
   // Generate a random invite code
   const generateInviteCode = () => {
@@ -175,7 +198,7 @@ const TeamCreate = () => {
     const userExists = allUsers.some(user => user.username === usernameToInvite);
 
     if (!userExists) {
-      toast({
+      uiToast({
         title: "User not found",
         description: `No user with username "${usernameToInvite}" exists`,
         variant: "destructive",
@@ -206,7 +229,7 @@ const TeamCreate = () => {
 
   const handleCreateTeam = async () => {
     if (!selectedHackathonId) {
-      toast({
+      uiToast({
         title: "Missing hackathon",
         description: "Please select a hackathon for your team",
         variant: "destructive",
@@ -215,7 +238,7 @@ const TeamCreate = () => {
     }
 
     if (!teamName) {
-      toast({
+      uiToast({
         title: "Missing team name",
         description: "Please provide a name for your team",
         variant: "destructive",
@@ -224,7 +247,7 @@ const TeamCreate = () => {
     }
 
     if (!currentUser) {
-      toast({
+      uiToast({
         title: "Not logged in",
         description: "You must be logged in to create a team",
         variant: "destructive",
@@ -247,45 +270,47 @@ const TeamCreate = () => {
         throw new Error("Selected hackathon not found");
       }
 
+      const teamMembers = [
+        {
+          id: currentUser.id,
+          username: currentUser.username,
+          role: "leader"
+        }
+      ];
+      
+      const teamInvitations = invitedUsers.map(username => ({
+        username,
+        invitedAt: new Date().toISOString(),
+        status: "pending"
+      }));
+
       // Create new team object for Supabase
       const newTeam = {
         name: teamName,
         hackathon_id: selectedHackathonId,
         hackathon_name: selectedHackathon.name,
         description: teamDescription,
-        members: JSON.stringify([
-          {
-            id: currentUser.id,
-            username: currentUser.username,
-            role: "leader"
-          }
-        ]),
+        members: teamMembers,
         members_count: 1,
         max_members: parseInt(maxMembers, 10),
-        skills: JSON.stringify(skills.length > 0 ? skills : ["General"]),
-        invitations: JSON.stringify(invitedUsers.map(username => ({
-          username,
-          invitedAt: new Date().toISOString(),
-          status: "pending"
-        }))),
+        skills: skills.length > 0 ? skills : ["General"],
+        invitations: teamInvitations,
         invite_code: inviteCode,
         created_at: new Date().toISOString(),
       };
 
       console.log("Creating team:", newTeam);
       
-      // Save to Supabase using the utility function
-      const createdTeam = await addTeamToStorage(newTeam);
+      // Save to Supabase
+      const { data: createdTeam, error } = await supabase
+        .from('teams')
+        .insert(newTeam)
+        .select()
+        .single();
       
-      if (!createdTeam) {
-        throw new Error("Failed to create team");
+      if (error || !createdTeam) {
+        throw new Error(error?.message || "Failed to create team");
       }
-      
-      // Update user's teams in localStorage for backwards compatibility
-      const userData = JSON.parse(localStorage.getItem("hackmap-user") || "{}");
-      userData.teams = userData.teams || [];
-      userData.teams.push(createdTeam.id);
-      localStorage.setItem("hackmap-user", JSON.stringify(userData));
       
       toast({
         title: "Team created",
@@ -295,11 +320,7 @@ const TeamCreate = () => {
       navigate("/teams");
     } catch (error) {
       console.error("Error creating team:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create team",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : "Failed to create team");
     } finally {
       setIsLoading(false);
     }
