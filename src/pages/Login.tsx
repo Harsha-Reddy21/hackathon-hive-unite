@@ -69,6 +69,9 @@ const Login = () => {
         );
         localStorage.setItem("hackmap-all-users", JSON.stringify(updatedAllUsers));
         
+        // Make sure we trigger a storage event for other tabs
+        window.dispatchEvent(new Event('storage'));
+        
         toast({
           title: "Success!",
           description: "You have successfully logged in.",

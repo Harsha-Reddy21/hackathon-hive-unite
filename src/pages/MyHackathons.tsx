@@ -5,12 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const MyHackathons = () => {
   const [registeredHackathons, setRegisteredHackathons] = useState<any[]>([]);
   const [createdHackathons, setCreatedHackathons] = useState<any[]>([]);
   const [userData, setUserData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Get user data to check if logged in
@@ -26,27 +28,60 @@ const MyHackathons = () => {
 
     // Get all hackathons from localStorage
     const hackathonsData = localStorage.getItem("hackmap-hackathons");
+    
     if (hackathonsData) {
       const allHackathons = JSON.parse(hackathonsData);
+      console.log("All hackathons:", allHackathons);
+      console.log("Current user:", parsedUserData);
       
       // Filter registered hackathons
       const userRegisteredHackathons = parsedUserData.registeredHackathons || [];
+      console.log("User registered hackathons IDs:", userRegisteredHackathons);
+      
       const registeredHackathonsData = allHackathons.filter((hackathon: any) => 
         userRegisteredHackathons.includes(hackathon.id)
       );
+      console.log("Filtered registered hackathons:", registeredHackathonsData);
       setRegisteredHackathons(registeredHackathonsData);
       
       // Filter created hackathons (if user is an organizer)
       if (parsedUserData.role === 'organizer') {
-        const createdHackathonsData = allHackathons.filter((hackathon: any) => 
-          hackathon.organizer && hackathon.organizer.username === parsedUserData.username
-        );
+        console.log("User is organizer, filtering created hackathons");
+        const createdHackathonsData = allHackathons.filter((hackathon: any) => {
+          console.log("Checking hackathon:", hackathon.id, hackathon.organizer);
+          // Handle both string and object organizer formats
+          if (!hackathon.organizer) return false;
+          
+          if (typeof hackathon.organizer === 'string') {
+            return hackathon.organizer === parsedUserData.username;
+          } else if (typeof hackathon.organizer === 'object') {
+            return hackathon.organizer.username === parsedUserData.username;
+          }
+          
+          return false;
+        });
+        
+        console.log("Filtered created hackathons:", createdHackathonsData);
         setCreatedHackathons(createdHackathonsData);
       }
+    } else {
+      // If no hackathons data exists, initialize with empty array
+      localStorage.setItem("hackmap-hackathons", JSON.stringify([]));
+      toast({
+        title: "No hackathons found",
+        description: "Create or register for hackathons to see them here.",
+      });
     }
     
     setIsLoading(false);
-  }, []);
+  }, [toast]);
+
+  // Helper function to safely render the organizer
+  const renderOrganizer = (organizer: any) => {
+    if (!organizer) return "Unknown";
+    if (typeof organizer === 'object') return organizer.username;
+    return organizer;
+  };
 
   if (isLoading) {
     return (
