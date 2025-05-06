@@ -8,8 +8,11 @@ import { initializeDatabase } from '@/utils/storageUtils'
 
 // Initialize database connection
 initializeDatabase()
-  .then(() => console.info("Database initialization successful"))
-  .catch((error) => console.error("Database initialization failed:", error));
+  .then(() => console.info("Database initialization completed"))
+  .catch((error) => {
+    console.error("Database initialization error:", error);
+    console.info("Falling back to local storage mode");
+  });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
