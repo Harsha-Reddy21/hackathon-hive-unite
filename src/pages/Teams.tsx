@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,12 @@ interface JoinRequest {
   requestDate: string;
 }
 
+interface Invitation {
+  username: string;
+  invitedAt: string;
+  status: "pending" | "accepted" | "declined";
+}
+
 interface Team {
   id: string;
   name: string;
@@ -32,12 +39,15 @@ interface Team {
   maxMembers: number;
   skills: string[];
   joinRequests?: JoinRequest[];
+  invitations?: Invitation[];
+  createdAt?: string;
 }
 
 const Teams = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [teams, setTeams] = useState<Team[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [myInvitations, setMyInvitations] = useState<any[]>([]);
   const { toast } = useToast();
   
   // Load teams from localStorage
@@ -53,7 +63,33 @@ const Teams = () => {
     const loadCurrentUser = () => {
       const userData = localStorage.getItem("hackmap-user");
       if (userData) {
-        setCurrentUser(JSON.parse(userData));
+        const user = JSON.parse(userData);
+        setCurrentUser(user);
+        
+        // Check for invitations for this user
+        const teamsData = localStorage.getItem("hackmap-teams");
+        if (teamsData) {
+          const allTeams = JSON.parse(teamsData);
+          const invitations = [];
+          
+          for (const team of allTeams) {
+            if (team.invitations) {
+              const userInvitation = team.invitations.find(
+                (inv: Invitation) => inv.username === user.username && inv.status === "pending"
+              );
+              
+              if (userInvitation) {
+                invitations.push({
+                  teamId: team.id,
+                  teamName: team.name,
+                  invitedAt: userInvitation.invitedAt
+                });
+              }
+            }
+          }
+          
+          setMyInvitations(invitations);
+        }
       }
     };
     
@@ -62,9 +98,11 @@ const Teams = () => {
     
     // Listen for storage changes in case teams are updated in another tab
     window.addEventListener('storage', loadTeams);
+    window.addEventListener('storage', loadCurrentUser);
     
     return () => {
       window.removeEventListener('storage', loadTeams);
+      window.removeEventListener('storage', loadCurrentUser);
     };
   }, []);
   
@@ -148,6 +186,86 @@ const Teams = () => {
     });
   };
 
+  const handleAcceptInvitation = (teamId: string) => {
+    if (!currentUser) return;
+    
+    // Find the team
+    const updatedTeams = teams.map(team => {
+      if (team.id === teamId) {
+        // Find and update the invitation
+        const updatedInvitations = team.invitations?.map(inv => {
+          if (inv.username === currentUser.username) {
+            return { ...inv, status: "accepted" };
+          }
+          return inv;
+        }) || [];
+        
+        // Add user as a member
+        return {
+          ...team,
+          members: [
+            ...team.members,
+            {
+              id: currentUser.id,
+              username: currentUser.username,
+              role: "member"
+            }
+          ],
+          membersCount: team.membersCount + 1,
+          invitations: updatedInvitations
+        };
+      }
+      return team;
+    });
+    
+    // Update localStorage
+    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
+    setTeams(updatedTeams);
+    
+    // Remove invitation from user's list
+    setMyInvitations(myInvitations.filter(inv => inv.teamId !== teamId));
+    
+    toast({
+      title: "Invitation Accepted",
+      description: `You have joined the team!`,
+    });
+  };
+
+  const handleDeclineInvitation = (teamId: string) => {
+    if (!currentUser) return;
+    
+    // Find the team
+    const updatedTeams = teams.map(team => {
+      if (team.id === teamId) {
+        // Find and update the invitation
+        const updatedInvitations = team.invitations?.map(inv => {
+          if (inv.username === currentUser.username) {
+            return { ...inv, status: "declined" };
+          }
+          return inv;
+        }) || [];
+        
+        return {
+          ...team,
+          invitations: updatedInvitations
+        };
+      }
+      return team;
+    });
+    
+    // Update localStorage
+    localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
+    setTeams(updatedTeams);
+    
+    // Remove invitation from user's list
+    setMyInvitations(myInvitations.filter(inv => inv.teamId !== teamId));
+    
+    toast({
+      title: "Invitation Declined",
+      description: `You have declined the team invitation.`,
+    });
+  };
+
   return (
     <div>
       <Navbar />
@@ -165,6 +283,43 @@ const Teams = () => {
             </Link>
           </Button>
         </div>
+
+        {myInvitations.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Team Invitations</h2>
+            <div className="space-y-4">
+              {myInvitations.map((invitation) => (
+                <Card key={invitation.teamId} className="bg-hackmap-blue/5 border-hackmap-blue/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">You've been invited to join "{invitation.teamName}"</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Invited {new Date(invitation.invitedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleDeclineInvitation(invitation.teamId)}
+                        >
+                          Decline
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleAcceptInvitation(invitation.teamId)}
+                        >
+                          Accept
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="relative w-full md:w-2/3 mb-8">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />

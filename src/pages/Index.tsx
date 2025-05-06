@@ -5,21 +5,54 @@ import { Button } from "@/components/ui/button";
 import HeroSection from "@/components/HeroSection";
 import StatsSection from "@/components/StatsSection";
 import HackathonCard from "@/components/HackathonCard";
-import { upcomingHackathons } from "@/data/hackathons";
 import Navbar from "@/components/Navbar";
 
+interface Hackathon {
+  id: string;
+  title: string;
+  theme: string;
+  startDate: string;
+  endDate: string;
+  registrationDeadline: string;
+  prizes: string[];
+  tags: string[];
+  participantCount?: number;
+}
+
 const Index = () => {
-  // Get the next 3 upcoming hackathons
-  const featuredHackathons = upcomingHackathons.slice(0, 3);
+  const [featuredHackathons, setFeaturedHackathons] = useState<Hackathon[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   useEffect(() => {
+    // Load hackathons from localStorage
+    const loadHackathons = () => {
+      const hackathonsData = localStorage.getItem("hackmap-hackathons");
+      if (hackathonsData) {
+        const loadedHackathons = JSON.parse(hackathonsData);
+        // Get the next 3 upcoming hackathons
+        const upcomingHackathons = [...loadedHackathons]
+          .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+          .filter(h => new Date(h.startDate) > new Date())
+          .slice(0, 3);
+        setFeaturedHackathons(upcomingHackathons);
+      }
+    };
+    
     // Check if user is logged in
     const userData = localStorage.getItem("hackmap-user");
     if (userData) {
       const user = JSON.parse(userData);
       setIsLoggedIn(!!user.isLoggedIn);
     }
+    
+    loadHackathons();
+    
+    // Listen for storage changes
+    window.addEventListener('storage', loadHackathons);
+    
+    return () => {
+      window.removeEventListener('storage', loadHackathons);
+    };
   }, []);
 
   return (
@@ -37,11 +70,20 @@ const Index = () => {
                 <Link to="/hackathons">View All</Link>
               </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredHackathons.map((hackathon) => (
-                <HackathonCard key={hackathon.id} hackathon={hackathon} />
-              ))}
-            </div>
+            {featuredHackathons.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {featuredHackathons.map((hackathon) => (
+                  <HackathonCard key={hackathon.id} hackathon={hackathon} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-600">No upcoming hackathons found.</p>
+                <Button asChild className="mt-4">
+                  <Link to="/hackathons/create">Create a Hackathon</Link>
+                </Button>
+              </div>
+            )}
           </div>
         </section>
         

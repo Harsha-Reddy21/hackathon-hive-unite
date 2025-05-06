@@ -5,155 +5,192 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Plus, X, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, X, Search } from "lucide-react";
-import { Link } from "react-router-dom";
+
+interface Hackathon {
+  id: string;
+  title: string;
+}
+
+interface UserData {
+  id: string;
+  username: string;
+  email: string;
+}
 
 const TeamCreate = () => {
+  const [hackathons, setHackathons] = useState<Hackathon[]>([]);
+  const [selectedHackathonId, setSelectedHackathonId] = useState("");
   const [teamName, setTeamName] = useState("");
-  const [hackathon, setHackathon] = useState("");
-  const [hackathonId, setHackathonId] = useState("");
-  const [availableHackathons, setAvailableHackathons] = useState<any[]>([]);
-  const [hackathonSuggestions, setHackathonSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [description, setDescription] = useState("");
-  const [maxMembers, setMaxMembers] = useState<number>(5);
-  const [skills, setSkills] = useState<string[]>([""]);
+  const [teamDescription, setTeamDescription] = useState("");
+  const [maxMembers, setMaxMembers] = useState("5");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [currentSkill, setCurrentSkill] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isNameAvailable, setIsNameAvailable] = useState(true);
+  const [currentUser, setCurrentUser] = useState<UserData | null>(null);
+  const [invitedUsers, setInvitedUsers] = useState<string[]>([]);
+  const [usernameToInvite, setUsernameToInvite] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
-  
-  // Load available hackathons on component mount
-  useEffect(() => {
-    const loadHackathons = () => {
-      const storedHackathons = localStorage.getItem("hackmap-hackathons");
-      if (storedHackathons) {
-        const hackathons = JSON.parse(storedHackathons);
-        setAvailableHackathons(hackathons);
-      }
-    };
-    
-    loadHackathons();
-  }, []);
-  
-  // Check team name availability
-  useEffect(() => {
-    if (!teamName.trim() || !hackathonId) return;
-    
-    const checkTeamName = () => {
-      const storedTeams = localStorage.getItem("hackmap-teams");
-      if (!storedTeams) return true;
-      
-      const teams = JSON.parse(storedTeams);
-      const isAvailable = !teams.some(
-        (team: any) => 
-          team.name.toLowerCase() === teamName.toLowerCase() && 
-          team.hackathonId === hackathonId
-      );
-      
-      setIsNameAvailable(isAvailable);
-    };
-    
-    checkTeamName();
-  }, [teamName, hackathonId]);
 
-  const handleCreateTeam = async () => {
-    if (!teamName.trim() || !hackathonId || !description.trim()) {
+  useEffect(() => {
+    // Load user data
+    const userData = localStorage.getItem("hackmap-user");
+    if (!userData) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: "Not logged in",
+        description: "You must be logged in to create a team",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+    setCurrentUser(JSON.parse(userData));
+
+    // Load hackathons from localStorage
+    const hackathonsData = localStorage.getItem("hackmap-hackathons");
+    if (hackathonsData) {
+      const loadedHackathons = JSON.parse(hackathonsData);
+      const hackathonsForSelect = loadedHackathons.map((h: any) => ({
+        id: h.id,
+        title: h.title,
+      }));
+      setHackathons(hackathonsForSelect);
+    }
+  }, [toast, navigate]);
+
+  const addSkill = () => {
+    if (currentSkill && !skills.includes(currentSkill)) {
+      setSkills([...skills, currentSkill]);
+      setCurrentSkill("");
+    }
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    setSkills(skills.filter(skill => skill !== skillToRemove));
+  };
+
+  const addInvitedUser = () => {
+    if (!usernameToInvite.trim()) return;
+
+    // Check if username exists in the system
+    const allUsers = getAllUsers();
+    const userExists = allUsers.some(user => user.username === usernameToInvite);
+
+    if (!userExists) {
+      toast({
+        title: "User not found",
+        description: `No user with username "${usernameToInvite}" exists`,
         variant: "destructive",
       });
       return;
     }
-    
-    if (!isNameAvailable) {
+
+    if (!invitedUsers.includes(usernameToInvite)) {
+      setInvitedUsers([...invitedUsers, usernameToInvite]);
+      setUsernameToInvite("");
+    }
+  };
+
+  const removeInvitedUser = (username: string) => {
+    setInvitedUsers(invitedUsers.filter(u => u !== username));
+  };
+
+  const getAllUsers = (): UserData[] => {
+    // This function would normally query a database, but for demo purposes,
+    // we'll use localStorage to get registered users
+    const usersData = localStorage.getItem("hackmap-users");
+    return usersData ? JSON.parse(usersData) : [];
+  };
+
+  const handleCreateTeam = () => {
+    if (!selectedHackathonId) {
       toast({
-        title: "Error",
-        description: "Team name already exists for this hackathon",
+        title: "Missing hackathon",
+        description: "Please select a hackathon for your team",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (!teamName) {
+      toast({
+        title: "Missing team name",
+        description: "Please provide a name for your team",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!currentUser) {
+      toast({
+        title: "Not logged in",
+        description: "You must be logged in to create a team",
+        variant: "destructive",
+      });
+      navigate("/login");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Get user data
-      const userData = localStorage.getItem("hackmap-user");
-      if (!userData) {
-        throw new Error("User not logged in");
-      }
+      // Find hackathon details
+      const hackathonsData = localStorage.getItem("hackmap-hackathons");
+      const hackathons = hackathonsData ? JSON.parse(hackathonsData) : [];
+      const selectedHackathon = hackathons.find((h: any) => h.id === selectedHackathonId);
 
-      const parsedUserData = JSON.parse(userData);
-      
-      // Get selected hackathon
-      const selectedHackathon = availableHackathons.find(h => h.id === hackathonId);
       if (!selectedHackathon) {
         throw new Error("Selected hackathon not found");
       }
 
-      // Create new team
+      // Create new team object
       const newTeam = {
         id: `team-${Date.now()}`,
         name: teamName,
-        hackathonId: hackathonId,
+        hackathonId: selectedHackathonId,
         hackathonName: selectedHackathon.title,
-        description: description,
+        description: teamDescription,
         members: [
           {
-            id: parsedUserData.id,
-            username: parsedUserData.username,
+            id: currentUser.id,
+            username: currentUser.username,
             role: "leader"
           }
         ],
         membersCount: 1,
-        maxMembers: parseInt(maxMembers.toString()),
-        skills: skills.filter(skill => skill.trim() !== ""),
+        maxMembers: parseInt(maxMembers, 10),
+        skills: skills.length > 0 ? skills : ["General"],
+        invitations: invitedUsers.map(username => ({
+          username,
+          invitedAt: new Date().toISOString(),
+          status: "pending"
+        })),
         createdAt: new Date().toISOString(),
-        joinRequests: []
       };
 
-      // Update user's team count
-      const updatedUserData = {
-        ...parsedUserData,
-        teamCount: (parsedUserData.teamCount || 0) + 1,
-        teams: [...(parsedUserData.teams || []), newTeam.id]
-      };
-      localStorage.setItem("hackmap-user", JSON.stringify(updatedUserData));
-      
-      // Update all users array
-      const allUsersData = localStorage.getItem("hackmap-all-users");
-      if (allUsersData) {
-        const allUsers = JSON.parse(allUsersData);
-        const updatedAllUsers = allUsers.map((user: any) => 
-          user.id === parsedUserData.id ? updatedUserData : user
-        );
-        localStorage.setItem("hackmap-all-users", JSON.stringify(updatedAllUsers));
-      }
-
-      // Add team to global teams
-      const storedTeams = localStorage.getItem("hackmap-teams") || "[]";
-      const teams = JSON.parse(storedTeams);
+      // Save to localStorage
+      const teamsData = localStorage.getItem("hackmap-teams");
+      const teams = teamsData ? JSON.parse(teamsData) : [];
       teams.push(newTeam);
       localStorage.setItem("hackmap-teams", JSON.stringify(teams));
-      
-      // Update hackathon with new team
-      selectedHackathon.teams = [...(selectedHackathon.teams || []), newTeam.id];
-      const updatedHackathons = availableHackathons.map(h => 
-        h.id === hackathonId ? selectedHackathon : h
-      );
-      localStorage.setItem("hackmap-hackathons", JSON.stringify(updatedHackathons));
+
+      // Update user's teams in localStorage
+      const userData = JSON.parse(localStorage.getItem("hackmap-user") || "{}");
+      userData.teams = userData.teams || [];
+      userData.teams.push(newTeam.id);
+      localStorage.setItem("hackmap-user", JSON.stringify(userData));
 
       toast({
-        title: "Success",
-        description: "Team created successfully!",
+        title: "Team created",
+        description: `Your team ${teamName} has been created successfully`,
       });
 
-      // Redirect to teams page
       navigate("/teams");
     } catch (error) {
       toast({
@@ -166,61 +203,13 @@ const TeamCreate = () => {
     }
   };
 
-  const addSkill = () => {
-    setSkills([...skills, ""]);
-  };
-
-  const removeSkill = (index: number) => {
-    const newSkills = [...skills];
-    newSkills.splice(index, 1);
-    setSkills(newSkills);
-  };
-
-  const handleSkillChange = (index: number, value: string) => {
-    const newSkills = [...skills];
-    newSkills[index] = value;
-    setSkills(newSkills);
-  };
-
-  // Handle hackathon search
-  const handleHackathonSearch = (query: string) => {
-    setHackathon(query);
-    
-    if (!query.trim()) {
-      setHackathonSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-    
-    const matchingHackathons = availableHackathons.filter(
-      h => h.title.toLowerCase().includes(query.toLowerCase())
-    );
-    
-    setHackathonSuggestions(matchingHackathons.map(h => h.title));
-    setShowSuggestions(true);
-  };
-  
-  // Select hackathon from suggestions
-  const selectHackathon = (hackathonName: string) => {
-    const selectedHackathon = availableHackathons.find(
-      h => h.title === hackathonName
-    );
-    
-    if (selectedHackathon) {
-      setHackathon(selectedHackathon.title);
-      setHackathonId(selectedHackathon.id);
-    }
-    
-    setShowSuggestions(false);
-  };
-
   return (
     <div>
       <Navbar />
       <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Team</h1>
-          <p className="text-gray-600">Fill in the details to create your team</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create a New Team</h1>
+          <p className="text-gray-600">Form a team for an upcoming hackathon and invite members with the skills you need</p>
         </div>
 
         <Card className="max-w-2xl mx-auto">
@@ -228,130 +217,149 @@ const TeamCreate = () => {
             <CardTitle>Team Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Team Name</label>
-                <Input
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  placeholder="Enter team name"
-                  required
-                  className={!isNameAvailable ? "border-red-500" : ""}
-                />
-                {!isNameAvailable && (
-                  <p className="text-red-500 text-xs mt-1">
-                    This team name is already taken for this hackathon
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hackathon</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                  <div className="relative">
-                    <Input
-                      value={hackathon}
-                      onChange={(e) => handleHackathonSearch(e.target.value)}
-                      placeholder="Search for a hackathon..."
-                      className="pl-10"
-                    />
-                    {showSuggestions && hackathonSuggestions.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
-                        {hackathonSuggestions.map((suggestion, index) => (
-                          <div
-                            key={index}
-                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                            onClick={() => selectHackathon(suggestion)}
-                          >
-                            {suggestion}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {showSuggestions && hackathonSuggestions.length === 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
-                        <div className="px-3 py-2 text-gray-500">
-                          No hackathons found. You may need to create one first.
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe your team's project and goals"
-                  rows={4}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Max Members</label>
-                <Select value={maxMembers.toString()} onValueChange={(value) => setMaxMembers(Number(value))}>
+                <Label htmlFor="hackathon">Select Hackathon</Label>
+                <Select value={selectedHackathonId} onValueChange={setSelectedHackathonId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select maximum members" />
+                    <SelectValue placeholder="Select a hackathon" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="3">3 Members</SelectItem>
-                    <SelectItem value="4">4 Members</SelectItem>
-                    <SelectItem value="5">5 Members</SelectItem>
-                    <SelectItem value="6">6 Members</SelectItem>
-                    <SelectItem value="7">7 Members</SelectItem>
-                    <SelectItem value="8">8 Members</SelectItem>
+                    {hackathons.map(hackathon => (
+                      <SelectItem key={hackathon.id} value={hackathon.id}>
+                        {hackathon.title}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Skills Needed</label>
-                <div className="space-y-2">
-                  {skills.map((skill, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <Input
-                        value={skill}
-                        onChange={(e) => handleSkillChange(index, e.target.value)}
-                        placeholder="Enter a skill"
-                        className="flex-1"
-                      />
-                      {skills.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeSkill(index)}
-                          className="text-red-500"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    onClick={addSkill}
-                    className="mt-2"
-                    type="button"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Another Skill
-                  </Button>
-                </div>
+                <Label htmlFor="team-name">Team Name</Label>
+                <Input
+                  id="team-name"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  placeholder="Enter your team name"
+                />
               </div>
 
-              <div className="flex justify-end space-x-4">
+              <div>
+                <Label htmlFor="description">Team Description</Label>
+                <Textarea
+                  id="description"
+                  value={teamDescription}
+                  onChange={(e) => setTeamDescription(e.target.value)}
+                  placeholder="Describe your team's goals and what you're building"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="max-members">Maximum Team Size</Label>
+                <Select value={maxMembers} onValueChange={setMaxMembers}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select maximum team size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2">2 Members</SelectItem>
+                    <SelectItem value="3">3 Members</SelectItem>
+                    <SelectItem value="4">4 Members</SelectItem>
+                    <SelectItem value="5">5 Members</SelectItem>
+                    <SelectItem value="6">6 Members</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Skills Needed</Label>
+                <div className="flex items-center space-x-2 mb-2">
+                  <Input
+                    value={currentSkill}
+                    onChange={(e) => setCurrentSkill(e.target.value)}
+                    placeholder="e.g., React, ML, UI/UX"
+                    onKeyPress={(e) => e.key === "Enter" && addSkill()}
+                  />
+                  <Button 
+                    type="button" 
+                    onClick={addSkill}
+                    size="sm"
+                    disabled={!currentSkill.trim()}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                {skills.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {skills.map((skill, index) => (
+                      <Badge
+                        key={index}
+                        className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full flex items-center"
+                      >
+                        <span>{skill}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeSkill(skill)}
+                          className="ml-2 text-gray-500 hover:text-gray-700"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label>Invite Members</Label>
+                <div className="flex items-center space-x-2 mb-2">
+                  <Input
+                    value={usernameToInvite}
+                    onChange={(e) => setUsernameToInvite(e.target.value)}
+                    placeholder="Enter username to invite"
+                    onKeyPress={(e) => e.key === "Enter" && addInvitedUser()}
+                  />
+                  <Button 
+                    type="button" 
+                    onClick={addInvitedUser}
+                    size="sm"
+                    disabled={!usernameToInvite.trim()}
+                  >
+                    <Users className="h-4 w-4" />
+                  </Button>
+                </div>
+                {invitedUsers.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {invitedUsers.map((username, index) => (
+                      <Badge
+                        key={index}
+                        className="bg-hackmap-blue/10 text-hackmap-blue px-3 py-1 rounded-full flex items-center"
+                      >
+                        <span>{username}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeInvitedUser(username)}
+                          className="ml-2 text-hackmap-blue hover:text-hackmap-blue/70"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-4 pt-4">
                 <Button
                   variant="outline"
-                  asChild
+                  onClick={() => navigate("/teams")}
                 >
-                  <Link to="/teams">Cancel</Link>
+                  Cancel
                 </Button>
                 <Button
                   onClick={handleCreateTeam}
-                  disabled={isLoading}
+                  disabled={isLoading || !teamName || !selectedHackathonId}
+                  className="bg-hackmap-purple hover:bg-hackmap-purple/90"
                 >
                   {isLoading ? "Creating..." : "Create Team"}
                 </Button>

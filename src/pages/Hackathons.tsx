@@ -1,8 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import HackathonCard from "@/components/HackathonCard";
-import { mockHackathons } from "@/data/hackathons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,15 +14,51 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface Hackathon {
+  id: string;
+  title: string;
+  theme: string;
+  startDate: string;
+  endDate: string;
+  registrationDeadline: string;
+  prizes: string[];
+  tags: string[];
+  participantCount?: number;
+  description?: string;
+}
+
 const Hackathons = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<string>("date");
+  const [hackathons, setHackathons] = useState<Hackathon[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
   
-  // Get all unique tags from hackathons
-  const allTags = Array.from(
-    new Set(mockHackathons.flatMap((hackathon) => hackathon.tags))
-  ).sort();
+  useEffect(() => {
+    // Load hackathons from localStorage
+    const loadHackathons = () => {
+      const hackathonsData = localStorage.getItem("hackmap-hackathons");
+      if (hackathonsData) {
+        const loadedHackathons = JSON.parse(hackathonsData);
+        setHackathons(loadedHackathons);
+        
+        // Extract all unique tags
+        const tags = Array.from(
+          new Set(loadedHackathons.flatMap((hackathon: Hackathon) => hackathon.tags || []))
+        ).sort();
+        setAllTags(tags);
+      }
+    };
+    
+    loadHackathons();
+    
+    // Listen for storage changes in case hackathons are updated in another tab
+    window.addEventListener('storage', loadHackathons);
+    
+    return () => {
+      window.removeEventListener('storage', loadHackathons);
+    };
+  }, []);
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -34,16 +69,16 @@ const Hackathons = () => {
   };
 
   // Filter hackathons based on search query and selected tags
-  const filteredHackathons = mockHackathons.filter((hackathon) => {
+  const filteredHackathons = hackathons.filter((hackathon) => {
     const matchesSearch =
       searchQuery === "" ||
       hackathon.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hackathon.theme.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hackathon.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      (hackathon.theme && hackathon.theme.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      hackathon.tags?.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesTags =
       selectedTags.length === 0 ||
-      selectedTags.every((tag) => hackathon.tags.includes(tag));
+      selectedTags.every((tag) => hackathon.tags?.includes(tag));
     
     return matchesSearch && matchesTags;
   });
