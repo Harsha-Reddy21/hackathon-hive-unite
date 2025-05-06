@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -9,64 +8,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight, Users, Lightbulb, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getTeamById, getCurrentUser, updateTeamInStorage, supabase } from "@/utils/storageUtils";
 
-// Sample team data
+// Sample team data for fallback
 const mockTeamMembers = [
   { id: 1, name: "Alex Johnson", role: "Team Lead", skills: ["Frontend", "UX/UI", "React"], avatar: null },
   { id: 2, name: "Jamie Smith", role: "Backend Developer", skills: ["Node.js", "Database", "API"], avatar: null },
   { id: 3, name: "Taylor Brown", role: "UI/UX Designer", skills: ["Figma", "Prototyping", "User Research"], avatar: null },
   { id: 4, name: "Jordan Lee", role: "Data Scientist", skills: ["Python", "Machine Learning", "Data Visualization"], avatar: null }
-];
-
-const mockTeams = [
-  {
-    id: "1",
-    name: "Code Wizards",
-    hackathonName: "AI for Good Hackathon",
-    hackathonId: "1",
-    description: "Building an AI solution to help identify and reduce food waste in restaurants. Our team aims to create an innovative solution that uses computer vision and machine learning to analyze kitchen inventory and make recommendations for menu adjustments and food usage to minimize waste.",
-    members: mockTeamMembers,
-    maxMembers: 5,
-    skills: ["AI", "Machine Learning", "Backend", "UI/UX"],
-    projectIdea: {
-      title: "AI Food Waste Reducer",
-      description: "An AI-powered system that helps restaurants reduce food waste through smart inventory management and predictive analytics.",
-      techStack: ["TensorFlow", "React", "Node.js", "PostgreSQL"],
-      progress: 35
-    }
-  },
-  {
-    id: "2",
-    name: "Blockchain Pioneers",
-    hackathonName: "Web3 Innovation Challenge",
-    hackathonId: "2",
-    description: "Creating a decentralized marketplace for carbon credits using blockchain technology. Our project aims to make carbon offset trading more accessible, transparent, and efficient through smart contracts.",
-    members: mockTeamMembers.slice(0, 2),
-    maxMembers: 4,
-    skills: ["Blockchain", "Smart Contracts", "Frontend", "Solidity"],
-    projectIdea: {
-      title: "Carbon Credit DEX",
-      description: "A decentralized exchange for carbon credits that makes offset trading accessible and transparent.",
-      techStack: ["Ethereum", "Solidity", "React", "Web3.js"],
-      progress: 20
-    }
-  },
-  {
-    id: "3",
-    name: "Health Innovators",
-    hackathonName: "HealthTech Hackathon",
-    hackathonId: "3",
-    description: "Developing a mobile app for remote patient monitoring using IoT devices. Our application connects with various health monitoring devices to provide doctors with real-time patient data.",
-    members: mockTeamMembers.slice(1, 4),
-    maxMembers: 4,
-    skills: ["Mobile Dev", "IoT", "Healthcare", "Backend"],
-    projectIdea: {
-      title: "RemoteHealth Monitor",
-      description: "A comprehensive platform connecting IoT health devices with healthcare providers for better remote patient monitoring.",
-      techStack: ["React Native", "Node.js", "MongoDB", "IoT Protocols"],
-      progress: 60
-    }
-  }
 ];
 
 const TeamDetail = () => {
@@ -75,49 +24,70 @@ const TeamDetail = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [hasRequested, setHasRequested] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const { toast } = useToast();
   
+  // Subscribe to real-time updates for the team
   useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem("hackmap-user");
-    if (userData) {
-      setIsLoggedIn(true);
+    if (!id) return;
+    
+    // Set up real-time subscription for team updates
+    const teamSubscription = supabase
+      .channel('team-changes')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'teams',
+        filter: `id=eq.${id}`
+      }, (payload) => {
+        setTeam(payload.new);
+      })
+      .subscribe();
       
-      // For demo purposes, randomly determine if user is a member
-      const randomMember = Math.random() > 0.7;
-      setIsMember(randomMember);
-    }
-    
-    // Find team by ID from localStorage first
-    const storedTeams = localStorage.getItem("hackmap-teams");
-    let foundTeam = null;
-    
-    if (storedTeams) {
-      const parsedTeams = JSON.parse(storedTeams);
-      foundTeam = parsedTeams.find((t: any) => t.id === id);
-    }
-    
-    // If not found in localStorage, check mock data
-    if (!foundTeam) {
-      foundTeam = mockTeams.find(t => t.id === id);
-    }
-    
-    if (foundTeam) {
-      // Check if the current user is a member of this team
+    return () => {
+      supabase.removeChannel(teamSubscription);
+    };
+  }, [id]);
+  
+  useEffect(() => {
+    async function loadData() {
+      // Check if user is logged in
+      const userData = await getCurrentUser();
       if (userData) {
-        const user = JSON.parse(userData);
-        const userIsMember = foundTeam.members.some((member: any) => 
-          member.username === user.username || member.name === user.username
-        );
-        setIsMember(userIsMember);
+        setIsLoggedIn(true);
+        setCurrentUser(userData);
       }
-      setTeam(foundTeam);
-    } else {
-      console.error("Team not found with ID:", id);
+      
+      // Find team by ID from Supabase
+      if (id) {
+        const teamData = await getTeamById(id);
+        
+        if (teamData) {
+          setTeam(teamData);
+          
+          // Check if the current user is a member of this team
+          if (userData) {
+            const userIsMember = teamData.members.some((member: any) => 
+              member.id === userData.id || member.username === userData.username
+            );
+            setIsMember(userIsMember);
+            
+            // Check if user has already requested to join
+            const hasAlreadyRequested = teamData.joinRequests?.some((request: any) =>
+              request.userId === userData.id
+            );
+            setHasRequested(Boolean(hasAlreadyRequested));
+          }
+        } else {
+          console.error("Team not found with ID:", id);
+        }
+      }
     }
+    
+    loadData();
   }, [id]);
 
-  const handleJoinRequest = () => {
+  const handleJoinRequest = async () => {
     if (!isLoggedIn) {
       toast({
         title: "Login Required",
@@ -127,69 +97,74 @@ const TeamDetail = () => {
       return;
     }
     
-    setHasRequested(true);
-    toast({
-      title: "Request Sent",
-      description: "Your request to join the team has been sent to the team leader.",
-    });
+    if (!team || !currentUser) return;
     
-    // Send email notification (simulated)
-    console.log("Sending email to team leader about join request");
-    
-    // Update team in localStorage
-    const storedTeams = localStorage.getItem("hackmap-teams");
-    if (storedTeams) {
-      const userData = JSON.parse(localStorage.getItem("hackmap-user") || "{}");
-      const allTeams = JSON.parse(storedTeams);
-      const updatedTeams = allTeams.map((t: any) => {
-        if (t.id === id) {
-          const joinRequests = t.joinRequests || [];
-          return {
-            ...t,
-            joinRequests: [
-              ...joinRequests,
-              {
-                id: `request-${Date.now()}`,
-                userId: userData.id || Date.now().toString(),
-                username: userData.username || "User",
-                requestDate: new Date().toISOString()
-              }
-            ]
-          };
-        }
-        return t;
+    try {
+      setHasRequested(true);
+      
+      // Update team in database with join request
+      const joinRequests = team.joinRequests || [];
+      const updatedTeam = {
+        ...team,
+        joinRequests: [
+          ...joinRequests,
+          {
+            id: `request-${Date.now()}`,
+            userId: currentUser.id,
+            username: currentUser.username || currentUser.email,
+            requestDate: new Date().toISOString()
+          }
+        ]
+      };
+      
+      await updateTeamInStorage(updatedTeam);
+      
+      toast({
+        title: "Request Sent",
+        description: "Your request to join the team has been sent to the team leader.",
       });
-      localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
+      
+      // Send email notification (simulated)
+      console.log("Sending email to team leader about join request");
+      
+    } catch (error) {
+      console.error("Error sending join request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send join request. Please try again.",
+        variant: "destructive",
+      });
+      setHasRequested(false);
     }
   };
   
-  const handleLeaveTeam = () => {
-    setIsMember(false);
-    toast({
-      title: "Team Left",
-      description: "You have successfully left the team.",
-    });
+  const handleLeaveTeam = async () => {
+    if (!team || !currentUser) return;
     
-    // Update team in localStorage
-    const storedTeams = localStorage.getItem("hackmap-teams");
-    const userData = localStorage.getItem("hackmap-user");
-    
-    if (storedTeams && userData) {
-      const user = JSON.parse(userData);
-      const allTeams = JSON.parse(storedTeams);
-      const updatedTeams = allTeams.map((t: any) => {
-        if (t.id === id) {
-          return {
-            ...t,
-            members: t.members.filter((member: any) => 
-              member.username !== user.username && member.name !== user.username
-            ),
-            membersCount: t.membersCount > 0 ? t.membersCount - 1 : 0
-          };
-        }
-        return t;
+    try {
+      // Remove user from team members
+      const updatedTeam = {
+        ...team,
+        members: team.members.filter((member: any) => 
+          member.id !== currentUser.id && member.username !== currentUser.username
+        ),
+        membersCount: team.membersCount > 0 ? team.membersCount - 1 : 0
+      };
+      
+      await updateTeamInStorage(updatedTeam);
+      
+      setIsMember(false);
+      toast({
+        title: "Team Left",
+        description: "You have successfully left the team.",
       });
-      localStorage.setItem("hackmap-teams", JSON.stringify(updatedTeams));
+    } catch (error) {
+      console.error("Error leaving team:", error);
+      toast({
+        title: "Error",
+        description: "Failed to leave team. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

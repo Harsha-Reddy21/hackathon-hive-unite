@@ -1,86 +1,176 @@
 
 /**
- * Utility functions for handling localStorage operations
+ * Utility functions for handling data storage operations with Supabase
  */
+import { createClient } from '@supabase/supabase-js';
 
-// Initialize key collections in localStorage if they don't exist
-export const initializeLocalStorage = () => {
-  console.info("Initializing localStorage if needed");
-  
-  if (!localStorage.getItem("hackmap-hackathons")) {
-    console.info("Initializing fresh hackathons data");
-    localStorage.setItem("hackmap-hackathons", JSON.stringify([]));
-  }
-  
-  if (!localStorage.getItem("hackmap-teams")) {
-    console.info("Initializing fresh teams data");
-    localStorage.setItem("hackmap-teams", JSON.stringify([]));
-  }
-  
-  if (!localStorage.getItem("hackmap-all-users")) {
-    console.info("Initializing fresh user data");
-    localStorage.setItem("hackmap-all-users", JSON.stringify([]));
-  }
-  
-  if (!localStorage.getItem("hackmap-shared-ideas")) {
-    console.info("Initializing fresh ideas data");
-    localStorage.setItem("hackmap-shared-ideas", JSON.stringify([]));
-  }
-  
-  console.info("Fresh data initialization complete");
-};
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Update user in both current user and all-users storage
-export const updateUserInStorage = (updatedUser) => {
-  // Update current user
-  localStorage.setItem("hackmap-user", JSON.stringify(updatedUser));
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Initialize database tables if needed
+export const initializeDatabase = async () => {
+  console.info("Checking database tables...");
   
-  // Update in all users array
-  const allUsersData = localStorage.getItem("hackmap-all-users");
-  if (allUsersData) {
-    const allUsers = JSON.parse(allUsersData);
-    const updatedAllUsers = allUsers.map((u) => 
-      u.id === updatedUser.id ? updatedUser : u
-    );
-    localStorage.setItem("hackmap-all-users", JSON.stringify(updatedAllUsers));
-  }
+  // This function would normally create tables if they don't exist,
+  // but with Supabase we usually create tables through the dashboard
+  // This is just a placeholder for any initialization logic
   
-  // Trigger storage event
-  window.dispatchEvent(new Event('storage'));
+  console.info("Database initialization complete");
 };
 
 // Get the current user data
-export const getCurrentUser = () => {
-  const userData = localStorage.getItem("hackmap-user");
-  return userData ? JSON.parse(userData) : null;
+export const getCurrentUser = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (user) {
+    // Get additional user data from the profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+      
+    return { ...user, ...profile };
+  }
+  
+  return null;
 };
 
-// Add a hackathon to storage
-export const addHackathonToStorage = (hackathon) => {
-  const hackathonsData = localStorage.getItem("hackmap-hackathons");
-  const hackathons = hackathonsData ? JSON.parse(hackathonsData) : [];
-  hackathons.push(hackathon);
-  localStorage.setItem("hackmap-hackathons", JSON.stringify(hackathons));
-  return hackathon;
+// Update user in the database
+export const updateUserInStorage = async (updatedUser) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updatedUser)
+    .eq('id', updatedUser.id);
+    
+  if (error) {
+    console.error("Error updating user:", error);
+    throw error;
+  }
+  
+  return data;
 };
 
-// Add a team to storage
-export const addTeamToStorage = (team) => {
-  const teamsData = localStorage.getItem("hackmap-teams");
-  const teams = teamsData ? JSON.parse(teamsData) : [];
-  teams.push(team);
-  localStorage.setItem("hackmap-teams", JSON.stringify(teams));
-  return team;
+// Add a hackathon to the database
+export const addHackathonToStorage = async (hackathon) => {
+  const { data, error } = await supabase
+    .from('hackathons')
+    .insert(hackathon)
+    .select();
+    
+  if (error) {
+    console.error("Error adding hackathon:", error);
+    throw error;
+  }
+  
+  return data[0];
+};
+
+// Add a team to the database
+export const addTeamToStorage = async (team) => {
+  const { data, error } = await supabase
+    .from('teams')
+    .insert(team)
+    .select();
+    
+  if (error) {
+    console.error("Error adding team:", error);
+    throw error;
+  }
+  
+  return data[0];
 };
 
 // Get all hackathons
-export const getAllHackathons = () => {
-  const hackathonsData = localStorage.getItem("hackmap-hackathons");
-  return hackathonsData ? JSON.parse(hackathonsData) : [];
+export const getAllHackathons = async () => {
+  const { data, error } = await supabase
+    .from('hackathons')
+    .select('*');
+    
+  if (error) {
+    console.error("Error fetching hackathons:", error);
+    throw error;
+  }
+  
+  return data || [];
 };
 
 // Get all teams
-export const getAllTeams = () => {
-  const teamsData = localStorage.getItem("hackmap-teams");
-  return teamsData ? JSON.parse(teamsData) : [];
+export const getAllTeams = async () => {
+  const { data, error } = await supabase
+    .from('teams')
+    .select('*');
+    
+  if (error) {
+    console.error("Error fetching teams:", error);
+    throw error;
+  }
+  
+  return data || [];
+};
+
+// Get team by ID
+export const getTeamById = async (id) => {
+  const { data, error } = await supabase
+    .from('teams')
+    .select('*')
+    .eq('id', id)
+    .single();
+    
+  if (error) {
+    console.error("Error fetching team:", error);
+    return null;
+  }
+  
+  return data;
+};
+
+// Get hackathon by ID
+export const getHackathonById = async (id) => {
+  const { data, error } = await supabase
+    .from('hackathons')
+    .select('*')
+    .eq('id', id)
+    .single();
+    
+  if (error) {
+    console.error("Error fetching hackathon:", error);
+    return null;
+  }
+  
+  return data;
+};
+
+// Update team in database
+export const updateTeamInStorage = async (updatedTeam) => {
+  const { data, error } = await supabase
+    .from('teams')
+    .update(updatedTeam)
+    .eq('id', updatedTeam.id)
+    .select();
+    
+  if (error) {
+    console.error("Error updating team:", error);
+    throw error;
+  }
+  
+  return data[0];
+};
+
+// Get teams for a specific hackathon
+export const getTeamsByHackathonId = async (hackathonId) => {
+  const { data, error } = await supabase
+    .from('teams')
+    .select('*')
+    .eq('hackathonId', hackathonId);
+    
+  if (error) {
+    console.error("Error fetching teams by hackathon:", error);
+    throw error;
+  }
+  
+  return data || [];
 };

@@ -4,12 +4,12 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { Toaster } from "@/components/ui/toaster"
-import { initializeLocalStorage } from '@/utils/storageUtils'
+import { initializeDatabase } from '@/utils/storageUtils'
 
-// Initialize localStorage data structures
-initializeLocalStorage();
-
-console.info("Data initialization successful");
+// Initialize database connection
+initializeDatabase()
+  .then(() => console.info("Database initialization successful"))
+  .catch((error) => console.error("Database initialization failed:", error));
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
