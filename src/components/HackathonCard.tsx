@@ -55,7 +55,7 @@ const HackathonCard = ({ hackathon }: HackathonCardProps) => {
         {hackathon.prizes && hackathon.prizes.length > 0 && (
           <div className="flex items-center text-sm">
             <Award className="h-4 w-4 mr-2 text-hackmap-blue" />
-            <span>{hackathon.prizes[0]}</span>
+            <span>{typeof hackathon.prizes[0] === 'string' ? hackathon.prizes[0] : (hackathon.prizes[0] as any).reward}</span>
           </div>
         )}
         {hackathon.participantCount && (

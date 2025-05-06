@@ -13,8 +13,10 @@ const NotFound = () => {
   const [resourceId, setResourceId] = useState<string>("");
   const [suggestedItems, setSuggestedItems] = useState<any[]>([]);
   const [loadAttempted, setLoadAttempted] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    setIsLoading(true);
     console.error(
       "404 Error: User attempted to access non-existent route:",
       location.pathname
@@ -39,12 +41,16 @@ const NotFound = () => {
     if (type === 'hackathons') {
       const hackathonsData = localStorage.getItem('hackmap-hackathons');
       if (hackathonsData) {
-        const hackathons = JSON.parse(hackathonsData);
-        setSuggestedItems(hackathons.slice(0, 3));
-        
-        // Log detailed error if ID was provided
-        if (id && !hackathons.some((h: any) => h.id === id)) {
-          console.error(`Hackathon with ID ${id} not found`);
+        try {
+          const hackathons = JSON.parse(hackathonsData);
+          setSuggestedItems(hackathons.slice(0, 3));
+          
+          // Log detailed error if ID was provided
+          if (id && !hackathons.some((h: any) => h.id === id)) {
+            console.error(`Hackathon with ID ${id} not found. Available IDs:`, hackathons.map((h: any) => h.id));
+          }
+        } catch (e) {
+          console.error('Error parsing hackathon data:', e);
         }
       } else {
         console.error('No hackathon data found in localStorage');
@@ -52,12 +58,16 @@ const NotFound = () => {
     } else if (type === 'teams') {
       const teamsData = localStorage.getItem('hackmap-teams');
       if (teamsData) {
-        const teams = JSON.parse(teamsData);
-        setSuggestedItems(teams.slice(0, 3));
-        
-        // Log detailed error if ID was provided
-        if (id && !teams.some((t: any) => t.id === id)) {
-          console.error(`Team with ID ${id} not found`);
+        try {
+          const teams = JSON.parse(teamsData);
+          setSuggestedItems(teams.slice(0, 3));
+          
+          // Log detailed error if ID was provided
+          if (id && !teams.some((t: any) => t.id === id)) {
+            console.error(`Team with ID ${id} not found. Available IDs:`, teams.map((t: any) => t.id));
+          }
+        } catch (e) {
+          console.error('Error parsing team data:', e);
         }
       } else {
         console.error('No team data found in localStorage');
@@ -65,11 +75,16 @@ const NotFound = () => {
     }
     
     setLoadAttempted(true);
+    setIsLoading(false);
   }, [location.pathname]);
 
   const goBack = () => {
     navigate(-1);
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div>

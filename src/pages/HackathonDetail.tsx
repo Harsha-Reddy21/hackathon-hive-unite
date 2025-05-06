@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -9,10 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, MapPin, Trophy, Users, Clock, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Hackathon } from "@/components/HackathonCard";
 
 const HackathonDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [hackathon, setHackathon] = useState<any | null>(null);
+  const [hackathon, setHackathon] = useState<Hackathon | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,6 +22,7 @@ const HackathonDetail = () => {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
+      console.log("Fetching hackathon data for ID:", id);
       
       // Check if user is logged in
       const userData = localStorage.getItem("hackmap-user");
@@ -43,10 +44,12 @@ const HackathonDetail = () => {
       
       if (storedHackathons) {
         const parsedHackathons = JSON.parse(storedHackathons);
+        console.log("Available hackathons:", parsedHackathons.map((h: any) => ({id: h.id, title: h.title})));
         foundHackathon = parsedHackathons.find((h: any) => h.id === id);
       }
       
       if (foundHackathon) {
+        console.log("Found hackathon:", foundHackathon);
         // Add some additional data to the hackathon if needed
         setHackathon({
           ...foundHackathon,
@@ -75,21 +78,24 @@ const HackathonDetail = () => {
         });
       } else {
         console.error("Hackathon not found with ID:", id);
-        // After 1 second, redirect to 404 page
-        setTimeout(() => {
-          navigate('/hackathons');
-          toast({
-            title: "Hackathon not found",
-            description: "We couldn't find the hackathon you're looking for.",
-            variant: "destructive",
-          });
-        }, 1000);
+        toast({
+          title: "Hackathon not found",
+          description: "We couldn't find the hackathon you're looking for.",
+          variant: "destructive",
+        });
+        navigate('/hackathons');
+        return;
       }
       
       setIsLoading(false);
     };
     
-    fetchData();
+    if (id) {
+      fetchData();
+    } else {
+      console.error("No hackathon ID provided");
+      navigate('/hackathons');
+    }
   }, [id, navigate, toast]);
 
   const handleRegister = () => {
