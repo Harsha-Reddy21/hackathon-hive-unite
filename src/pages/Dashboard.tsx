@@ -113,7 +113,7 @@ const Dashboard = () => {
             color="bg-hackmap-purple"
           />
           <DashboardCard 
-            title="Current Teams" 
+            title="View Teams" 
             count={teams.length}
             icon={Users}
             color="bg-hackmap-blue"
@@ -173,23 +173,35 @@ const Dashboard = () => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Your Hackathons</h2>
               <Button asChild variant="outline" size="sm">
-                <Link to="/hackathons">Explore More</Link>
+                <Link to="/my-hackathons">View All</Link>
               </Button>
             </div>
             <div className="space-y-4">
               {registeredHackathons.map((hackathon) => (
                 <Card key={hackathon.id} className="overflow-hidden">
-                  <CardContent className="p-4 flex items-center">
-                    <div className="w-12 h-12 bg-hackmap-purple/10 rounded-md flex items-center justify-center mr-4">
-                      <Calendar className="text-hackmap-purple h-6 w-6" />
+                  <CardHeader className="pt-4 pb-2 px-4">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-6 w-6 text-hackmap-purple" />
+                      <CardTitle>{hackathon.title}</CardTitle>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{hackathon.title}</h3>
-                      <p className="text-sm text-gray-500">{new Date(hackathon.startDate).toLocaleDateString()} - {new Date(hackathon.endDate).toLocaleDateString()}</p>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <p className="text-gray-500 mb-4">{hackathon.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-purple/10 text-hackmap-purple">
+                          {new Date(hackathon.startDate).toLocaleDateString()} - {new Date(hackathon.endDate).toLocaleDateString()}
+                        </span>
+                        {hackathon.tags?.map((tag: string) => (
+                          <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-purple/5 text-hackmap-purple/90">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <Button asChild variant="outline">
+                        <Link to={`/hackathons/${hackathon.id}`}>View Hackathon</Link>
+                      </Button>
                     </div>
-                    <Button asChild size="sm">
-                      <Link to={`/hackathons/${hackathon.id}`}>View</Link>
-                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -205,28 +217,52 @@ const Dashboard = () => {
               )}
             </div>
           </section>
-          
           <section>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Your Teams</h2>
               <Button asChild variant="outline" size="sm">
-                <Link to="/teams">Manage Teams</Link>
+                <Link to="/my-teams">View All</Link>
               </Button>
             </div>
             <div className="space-y-4">
               {teams.map((team) => (
                 <Card key={team.id} className="overflow-hidden">
-                  <CardContent className="p-4 flex items-center">
-                    <div className="w-12 h-12 bg-hackmap-blue/10 rounded-md flex items-center justify-center mr-4">
-                      <Users className="text-hackmap-blue h-6 w-6" />
+                  <CardHeader className="pt-4 pb-2 px-4">
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-6 w-6 text-hackmap-blue" />
+                      <CardTitle>{team.name}</CardTitle>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{team.name}</h3>
-                      <p className="text-sm text-gray-500">{team.hackathonName} • {team.members}/{team.maxMembers} members</p>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-semibold mb-2">Hackathon</h3>
+                        <p className="text-gray-500">{team.hackathonName}</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-2">Members</h3>
+                        <div className="flex items-center space-x-2">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-blue/10 text-hackmap-blue">
+                            {team.members}/{team.maxMembers}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-2">Skills</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {team.skills.map((skill: string) => (
+                            <span key={skill} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-blue/5 text-hackmap-blue/90">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <Button asChild size="sm">
-                      <Link to={`/teams/${team.id}`}>View</Link>
-                    </Button>
+                    <div className="mt-4">
+                      <Button asChild variant="outline" className="w-full">
+                        <Link to={`/teams/${team.id}`}>View Team</Link>
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -235,7 +271,7 @@ const Dashboard = () => {
                   <CardContent className="p-6 text-center">
                     <p className="text-gray-500 mb-4">You haven't joined any teams yet.</p>
                     <Button asChild>
-                      <Link to="/teams">Find Teams</Link>
+                      <Link to="/teams">Join a Team</Link>
                     </Button>
                   </CardContent>
                 </Card>
