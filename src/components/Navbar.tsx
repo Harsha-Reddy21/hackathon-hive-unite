@@ -77,8 +77,11 @@ const Navbar = () => {
             {isLoggedIn ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <User className="h-6 w-6" />
+                  <Button variant="ghost" className="rounded-full">
+                    <div className="flex items-center space-x-2">
+                      <User className="h-6 w-6" />
+                      <span className="text-sm font-medium">{username}</span>
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

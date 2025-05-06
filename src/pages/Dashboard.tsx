@@ -11,6 +11,8 @@ interface UserData {
   email: string;
   username?: string;
   isLoggedIn: boolean;
+  hackathonCount?: number;
+  teamCount?: number;
 }
 
 const Dashboard = () => {
@@ -26,31 +28,33 @@ const Dashboard = () => {
       const parsedUserData = JSON.parse(storedUserData);
       setUserData(parsedUserData);
       
-      // Simulate fetching user's registered hackathons (first 2 hackathons)
-      setRegisteredHackathons(mockHackathons.slice(0, 2));
-      
-      // Simulate fetching user's teams
-      setTeams([
-        {
-          id: "personal-team-1",
-          name: "Code Wizards",
+      // Initialize data from localStorage
+      const storedIdeas = localStorage.getItem("hackmap-shared-ideas");
+
+      if (storedIdeas) {
+        const ideas = JSON.parse(storedIdeas);
+        const userIdeas = ideas.filter((idea: any) => idea.author === parsedUserData.username);
+        setSharedIdeas(userIdeas);
+      }
+
+      // Fetch registered hackathons and teams from userData
+      const registeredHackathons = parsedUserData.registeredHackathons || [];
+      const registeredHackathonsData = mockHackathons.filter(hackathon => registeredHackathons.includes(hackathon.id));
+      setRegisteredHackathons(registeredHackathonsData);
+
+      // Initialize teams
+      const teamsData = [];
+      for (let i = 0; i < (parsedUserData.teamCount || 0); i++) {
+        teamsData.push({
+          id: `team-${i + 1}`,
+          name: `Team ${i + 1}`,
           hackathonName: "AI for Good Hackathon",
           members: 3,
           maxMembers: 5,
           skills: ["AI", "Machine Learning", "Backend"]
-        }
-      ]);
-      
-      // Simulate fetching user's shared ideas
-      setSharedIdeas([
-        {
-          id: "idea-1",
-          title: "AI-Powered Food Waste Reduction",
-          description: "An AI solution that helps restaurants identify and reduce food waste by analyzing patterns and making recommendations.",
-          likes: 12,
-          tags: ["AI", "Sustainability", "Food"]
-        }
-      ]);
+        });
+      }
+      setTeams(teamsData);
     }
   }, []);
 
@@ -68,6 +72,30 @@ const Dashboard = () => {
     );
   }
 
+  const updateHackathonCount = (increment: boolean) => {
+    if (!userData) return;
+    
+    const newCount = increment ? (userData.hackathonCount || 0) + 1 : (userData.hackathonCount || 0) - 1;
+    const updatedUserData = {
+      ...userData,
+      hackathonCount: newCount
+    };
+    localStorage.setItem("hackmap-user", JSON.stringify(updatedUserData));
+    setUserData(updatedUserData);
+  };
+
+  const updateTeamCount = (increment: boolean) => {
+    if (!userData) return;
+    
+    const newCount = increment ? (userData.teamCount || 0) + 1 : (userData.teamCount || 0) - 1;
+    const updatedUserData = {
+      ...userData,
+      teamCount: newCount
+    };
+    localStorage.setItem("hackmap-user", JSON.stringify(updatedUserData));
+    setUserData(updatedUserData);
+  };
+
   return (
     <div>
       <Navbar />
@@ -80,7 +108,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <DashboardCard 
             title="Registered Hackathons" 
-            count={registeredHackathons.length}
+            count={userData?.hackathonCount || 0}
             icon={Calendar}
             color="bg-hackmap-purple"
           />
@@ -96,9 +124,51 @@ const Dashboard = () => {
             icon={Lightbulb}
             color="bg-green-500"
           />
+          
+          <section>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Your Shared Ideas</h2>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/my-ideas">View All</Link>
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {sharedIdeas.map((idea) => (
+                <Card key={idea.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                  <Link to={`/ideas/${idea.id}`} className="block">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{idea.title}</h3>
+                          <p className="text-sm text-gray-500">{idea.likes} likes</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {idea.tags.map((tag) => (
+                            <span key={tag} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Link>
+                </Card>
+              ))}
+              {sharedIdeas.length === 0 && (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <p className="text-gray-500 mb-4">You haven't shared any ideas yet.</p>
+                    <Button asChild>
+                      <Link to="/ideas">Share Your Ideas</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </section>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <section>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Your Hackathons</h2>

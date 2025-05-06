@@ -15,6 +15,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import MyIdeas from "./pages/MyIdeas";
+import IdeaDetail from "./pages/IdeaDetail";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +33,8 @@ const App = () => (
           <Route path="/teams" element={<Teams />} />
           <Route path="/teams/:id" element={<TeamDetail />} />
           <Route path="/ideas" element={<Ideas />} />
+          <Route path="/my-ideas" element={<MyIdeas />} />
+          <Route path="/ideas/:id" element={<IdeaDetail />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />

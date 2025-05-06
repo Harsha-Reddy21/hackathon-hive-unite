@@ -48,8 +48,13 @@ const Login = () => {
       // Simulating API call
       // IMPORTANT: Using a shorter timeout to improve user experience
       setTimeout(() => {
-        // Set some mock user data in localStorage to simulate logged in state
-        localStorage.setItem("hackmap-user", JSON.stringify({ email, isLoggedIn: true }));
+        // Set user data in localStorage to simulate logged in state
+        const username = email.split('@')[0]; // Extract username from email
+        localStorage.setItem("hackmap-user", JSON.stringify({ 
+          email, 
+          username,
+          isLoggedIn: true 
+        }));
         
         toast({
           title: "Success!",

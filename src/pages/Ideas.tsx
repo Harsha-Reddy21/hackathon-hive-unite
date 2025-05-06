@@ -82,6 +82,7 @@ const Ideas = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [ideas, setIdeas] = useState(mockIdeas);
+  const [userIdeas, setUserIdeas] = useState(mockIdeas.filter(idea => idea.id.startsWith('user-')));
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [newIdea, setNewIdea] = useState({
     title: "",
@@ -100,7 +101,7 @@ const Ideas = () => {
   }, []);
   
   // Filter ideas based on search query and selected tags
-  const filteredIdeas = ideas.filter((idea) => {
+  const filteredIdeas = [...ideas, ...userIdeas].filter((idea) => {
     const matchesSearch =
       searchQuery === "" ||
       idea.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -170,8 +171,15 @@ const Ideas = () => {
       comments: 0
     };
     
-    // Add to ideas list
-    setIdeas(prev => [createdIdea, ...prev]);
+    // Add to ideas list and save to localStorage
+    const updatedIdeas = [createdIdea, ...ideas];
+    setIdeas(updatedIdeas);
+    
+    // Save to localStorage
+    const storedIdeas = localStorage.getItem("hackmap-shared-ideas");
+    const existingIdeas = storedIdeas ? JSON.parse(storedIdeas) : [];
+    const allIdeas = [...existingIdeas, createdIdea];
+    localStorage.setItem("hackmap-shared-ideas", JSON.stringify(allIdeas));
     
     // Reset form
     setNewIdea({

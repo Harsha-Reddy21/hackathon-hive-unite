@@ -70,6 +70,19 @@ const HackathonDetail = () => {
       return;
     }
     
+    // Save registration status to localStorage
+    const userData = JSON.parse(localStorage.getItem("hackmap-user") || "{}");
+    const registeredHackathons = userData.registeredHackathons || [];
+    if (!registeredHackathons.includes(hackathon.id)) {
+      registeredHackathons.push(hackathon.id);
+      const updatedUserData = {
+        ...userData,
+        registeredHackathons,
+        hackathonCount: (userData.hackathonCount || 0) + 1
+      };
+      localStorage.setItem("hackmap-user", JSON.stringify(updatedUserData));
+    }
+    
     setIsRegistered(true);
     toast({
       title: "Success!",
@@ -78,6 +91,17 @@ const HackathonDetail = () => {
   };
   
   const handleUnregister = () => {
+    // Remove registration status from localStorage
+    const userData = JSON.parse(localStorage.getItem("hackmap-user") || "{}");
+    const registeredHackathons = userData.registeredHackathons || [];
+    const updatedHackathons = registeredHackathons.filter(id => id !== hackathon.id);
+    const updatedUserData = {
+      ...userData,
+      registeredHackathons: updatedHackathons,
+      hackathonCount: (userData.hackathonCount || 1) - 1
+    };
+    localStorage.setItem("hackmap-user", JSON.stringify(updatedUserData));
+    
     setIsRegistered(false);
     toast({
       title: "Unregistered",
