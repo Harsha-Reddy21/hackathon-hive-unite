@@ -350,8 +350,8 @@ const Teams = () => {
       }
       
       // Parse fields
-      const invitations = parseInvitations(team.invitations);
-      const members = parseMembers(team.members);
+      const invitations = parseInvitations(team.invitations || null);
+      const members = parseMembers(team.members || null);
       
       // Find and update the invitation
       const updatedInvitations = invitations.map((inv: Invitation) => {
@@ -492,7 +492,7 @@ const Teams = () => {
       const team = matchingTeams[0];
       
       // Parse members
-      const members = parseMembers(team.members);
+      const members = parseMembers(team.members || null);
       
       // Check if user is already a member
       if (members.some(member => member.id === currentUser.id)) {
