@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Calendar, Users, Lightbulb } from "lucide-react";
-import { mockHackathons } from "@/data/hackathons";
 
 interface UserData {
   email: string;
@@ -14,6 +13,7 @@ interface UserData {
   hackathonCount?: number;
   teamCount?: number;
   role?: 'organizer' | 'attendee';
+  registeredHackathons?: string[];
   createdHackathons?: string[];
 }
 
@@ -40,31 +40,51 @@ const Dashboard = () => {
         setSharedIdeas(userIdeas);
       }
 
-      // Fetch registered and created hackathons from userData
-      const registeredHackathons = parsedUserData.registeredHackathons || [];
-      const registeredHackathonsData = mockHackathons.filter(hackathon => registeredHackathons.includes(hackathon.id));
-      setRegisteredHackathons(registeredHackathonsData);
+      // Get all hackathons
+      const storedHackathons = localStorage.getItem("hackmap-hackathons");
+      if (storedHackathons) {
+        const allHackathons = JSON.parse(storedHackathons);
+        
+        // Filter registered hackathons
+        const registeredHackathons = parsedUserData.registeredHackathons || [];
+        const registeredHackathonsData = allHackathons.filter((hackathon: any) => 
+          registeredHackathons.includes(hackathon.id)
+        );
+        setRegisteredHackathons(registeredHackathonsData);
 
-      // Fetch created hackathons for organizers
-      if (parsedUserData.role === 'organizer') {
-        const createdHackathons = parsedUserData.createdHackathons || [];
-        const createdHackathonsData = mockHackathons.filter(hackathon => createdHackathons.includes(hackathon.id));
-        setCreatedHackathons(createdHackathonsData);
+        // Filter created hackathons for organizers
+        if (parsedUserData.role === 'organizer') {
+          const createdHackathons = allHackathons.filter((hackathon: any) => 
+            hackathon.organizer && hackathon.organizer.username === parsedUserData.username
+          );
+          setCreatedHackathons(createdHackathons);
+        }
       }
 
       // Initialize teams
-      const teamsData = [];
-      for (let i = 0; i < (parsedUserData.teamCount || 0); i++) {
-        teamsData.push({
-          id: `team-${i + 1}`,
-          name: `Team ${i + 1}`,
-          hackathonName: "AI for Good Hackathon",
-          members: 3,
-          maxMembers: 5,
-          skills: ["AI", "Machine Learning", "Backend"]
-        });
+      const storedTeams = localStorage.getItem("hackmap-teams");
+      if (storedTeams) {
+        const allTeams = JSON.parse(storedTeams);
+        // Filter teams where user is a member
+        const userTeams = allTeams.filter((team: any) => 
+          team.members.some((member: any) => member.username === parsedUserData.username)
+        );
+        setTeams(userTeams);
+      } else {
+        // Fallback to mock teams if no teams in localStorage
+        const teamsData = [];
+        for (let i = 0; i < (parsedUserData.teamCount || 0); i++) {
+          teamsData.push({
+            id: `team-${i + 1}`,
+            name: `Team ${i + 1}`,
+            hackathonName: "AI for Good Hackathon",
+            members: 3,
+            maxMembers: 5,
+            skills: ["AI", "Machine Learning", "Backend"]
+          });
+        }
+        setTeams(teamsData);
       }
-      setTeams(teamsData);
     }
   }, []);
 
@@ -82,30 +102,6 @@ const Dashboard = () => {
     );
   }
 
-  const updateHackathonCount = (increment: boolean) => {
-    if (!userData) return;
-    
-    const newCount = increment ? (userData.hackathonCount || 0) + 1 : (userData.hackathonCount || 0) - 1;
-    const updatedUserData = {
-      ...userData,
-      hackathonCount: newCount
-    };
-    localStorage.setItem("hackmap-user", JSON.stringify(updatedUserData));
-    setUserData(updatedUserData);
-  };
-
-  const updateTeamCount = (increment: boolean) => {
-    if (!userData) return;
-    
-    const newCount = increment ? (userData.teamCount || 0) + 1 : (userData.teamCount || 0) - 1;
-    const updatedUserData = {
-      ...userData,
-      teamCount: newCount
-    };
-    localStorage.setItem("hackmap-user", JSON.stringify(updatedUserData));
-    setUserData(updatedUserData);
-  };
-
   return (
     <div>
       <Navbar />
@@ -118,7 +114,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <DashboardCard 
             title="Registered Hackathons" 
-            count={userData?.hackathonCount || 0}
+            count={registeredHackathons.length}
             icon={Calendar}
             color="bg-hackmap-purple"
           />
@@ -311,7 +307,7 @@ const Dashboard = () => {
                         <h3 className="font-semibold mb-2">Members</h3>
                         <div className="flex items-center space-x-2">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-hackmap-blue/10 text-hackmap-blue">
-                            {team.members}/{team.maxMembers}
+                            {team.members ? team.members.length : team.members}/{team.maxMembers}
                           </span>
                         </div>
                       </div>

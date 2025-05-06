@@ -76,15 +76,17 @@ const HackathonCreate = () => {
         endDate: endDate.toISOString(),
         registrationDeadline: registrationDeadline.toISOString(),
         tags: tags.length > 0 ? tags : ["General"],
-        prizes,
+        prizes: prizes || "Prizes to be announced",
         createdAt: new Date().toISOString(),
         organizer: {
-          id: currentUser.id,
+          id: currentUser.id || `user-${Date.now()}`,
           username: currentUser.username
         },
         participants: [],
         teams: [],
-        isActive: true
+        isActive: true,
+        theme: title, // Use title as theme if not specified
+        participantCount: 0
       };
 
       // Get existing hackathons or initialize empty array
@@ -97,14 +99,20 @@ const HackathonCreate = () => {
       // Save back to localStorage (this makes it globally available)
       localStorage.setItem("hackmap-hackathons", JSON.stringify(hackathons));
       
-      // Also update user's hackathon count
-      currentUser.hackathonCount = (currentUser.hackathonCount || 0) + 1;
+      // Update user's created hackathons list
+      if (!currentUser.createdHackathons) {
+        currentUser.createdHackathons = [];
+      }
+      currentUser.createdHackathons.push(newHackathon.id);
       localStorage.setItem("hackmap-user", JSON.stringify(currentUser));
 
       toast({
         title: "Success",
         description: "Hackathon created successfully!",
       });
+
+      // Trigger a storage event so other tabs update
+      window.dispatchEvent(new Event('storage'));
 
       // Navigate to hackathons page
       navigate("/hackathons");
