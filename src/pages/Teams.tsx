@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -157,9 +158,8 @@ const Teams = () => {
           const invitations = [];
           
           for (const team of normalizedTeams) {
-            if (Array.isArray(team.invitations)) {
-              const parsedInvitations = parseInvitations(team.invitations as Json);
-              const userInvitation = parsedInvitations.find(
+            if (team.invitations && Array.isArray(team.invitations)) {
+              const userInvitation = team.invitations.find(
                 (inv) => inv.username === userProfile.username && inv.status === "pending"
               );
               
@@ -239,8 +239,8 @@ const Teams = () => {
     }
     
     // Check if user is already a member of this team
-    const parsedMembers = parseMembers(team.members as Json);
-    if (parsedMembers.some(member => member.id === currentUser.id)) {
+    if (team.members && Array.isArray(team.members) && 
+        team.members.some(member => member.id === currentUser.id)) {
       uiToast({
         description: "You are already a member of this team",
         variant: "destructive",
@@ -298,7 +298,7 @@ const Teams = () => {
       // Update the team
       const { error: updateError } = await supabase
         .from('teams')
-        .update({ join_requests: updatedRequests })
+        .update({ join_requests: JSON.stringify(updatedRequests) })
         .eq('id', team.id);
       
       if (updateError) {
@@ -314,11 +314,15 @@ const Teams = () => {
       setTeams(updatedTeams);
       
       // Find team leader to send email notification
-      const teamLeader = parsedMembers.find(member => member.role === "leader" || member.role === "Team Lead");
-      
-      if (teamLeader) {
-        // In a real app, you would send an email notification here
-        console.log("Would send email to team leader:", teamLeader);
+      if (team.members && Array.isArray(team.members)) {
+        const teamLeader = team.members.find(member => 
+          member.role === "leader" || member.role === "Team Lead"
+        );
+        
+        if (teamLeader) {
+          // In a real app, you would send an email notification here
+          console.log("Would send email to team leader:", teamLeader);
+        }
       }
       
       uiToast({
@@ -373,8 +377,8 @@ const Teams = () => {
       const { error: updateError } = await supabase
         .from('teams')
         .update({ 
-          invitations: updatedInvitations,
-          members: updatedMembers,
+          invitations: JSON.stringify(updatedInvitations),
+          members: JSON.stringify(updatedMembers),
           members_count: (team.members_count || 0) + 1
         })
         .eq('id', teamId);
@@ -434,7 +438,7 @@ const Teams = () => {
       // Update the team in the database
       const { error: updateError } = await supabase
         .from('teams')
-        .update({ invitations: updatedInvitations })
+        .update({ invitations: JSON.stringify(updatedInvitations) })
         .eq('id', teamId);
       
       if (updateError) {
@@ -519,7 +523,7 @@ const Teams = () => {
       const { error: updateError } = await supabase
         .from('teams')
         .update({ 
-          members: updatedMembers,
+          members: JSON.stringify(updatedMembers),
           members_count: (team.members_count || 0) + 1
         })
         .eq('id', team.id);

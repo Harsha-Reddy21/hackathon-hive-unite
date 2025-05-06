@@ -323,27 +323,6 @@ export const addTeamToStorage = async (team: any) => {
   }
 };
 
-// Get all hackathons
-export const getAllHackathons = async () => {
-  try {
-    console.log("Fetching all hackathons from Supabase");
-    const { data, error } = await supabase
-      .from('hackathons')
-      .select('*');
-      
-    if (error) {
-      console.error("Error fetching hackathons:", error);
-      throw error;
-    }
-    
-    console.log("Hackathons fetched:", data);
-    return data || [];
-  } catch (err) {
-    console.error("Error fetching hackathons:", err);
-    throw err;
-  }
-};
-
 // Get all teams
 export const getAllTeams = async () => {
   try {

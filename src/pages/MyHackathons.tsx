@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getCurrentUser, getAllHackathons, initializeLocalStorage } from "@/utils/storageUtils";
+import { getCurrentUser, getAllHackathons } from "@/utils/storageUtils";
 
 const MyHackathons = () => {
   const [registeredHackathons, setRegisteredHackathons] = useState<any[]>([]);
@@ -36,7 +36,8 @@ const MyHackathons = () => {
         console.log("All hackathons:", allHackathons);
         
         // Filter registered hackathons (if any registrations exist)
-        // Access registered_hackathons from user_metadata if it exists
+        // For now, we're using user_metadata.registered_hackathons if it exists
+        // In a real application, you'd have a proper registration table
         const userRegisteredHackathonsIds = 
           currentUser?.user_metadata?.registered_hackathons || 
           [];
