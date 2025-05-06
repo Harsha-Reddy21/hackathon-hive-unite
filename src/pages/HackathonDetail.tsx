@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -404,7 +405,7 @@ const HackathonDetail = () => {
                         <CardContent className="pt-6">
                           <h3 className="font-bold mb-1">{team.name}</h3>
                           <p className="text-sm text-gray-500 mb-2">{team.members?.length || 0} members</p>
-                          <p className="text-sm mb-3">{team.description?.substring(0, 100)}...</p>
+                          <p className="text-sm mb-3">{team.description ? `${team.description.substring(0, 100)}...` : 'No description available'}</p>
                           <Button asChild size="sm" variant="outline">
                             <Link to={`/teams/${team.id}`}>View Team</Link>
                           </Button>
