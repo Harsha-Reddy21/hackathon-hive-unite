@@ -324,10 +324,12 @@ const TeamDetail = () => {
                     <div key={member.id} className="flex items-center">
                       <Avatar className="h-10 w-10 mr-3">
                         <AvatarImage src={member.avatar} />
-                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>
+                          {member && member.name ? member.name.charAt(0) : "?"}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{member.name}</p>
+                        <p className="font-medium">{member.name || "Unknown"}</p>
                         <p className="text-xs text-gray-500">{member.role}</p>
                       </div>
                     </div>
