@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -152,6 +151,13 @@ const HackathonDetail = () => {
     });
   };
 
+  // Helper function to safely render the organizer
+  const renderOrganizer = (organizer: string | { id: string; username: string } | undefined) => {
+    if (!organizer) return "Unknown Organizer";
+    if (typeof organizer === 'object') return organizer.username;
+    return organizer;
+  };
+
   if (isLoading) {
     return (
       <div>
@@ -278,7 +284,7 @@ const HackathonDetail = () => {
                       ))}
                     </div>
                     <h3 className="font-semibold text-lg mb-2">Organized by</h3>
-                    <p>{hackathon.organizer}</p>
+                    <p>{renderOrganizer(hackathon.organizer)}</p>
                   </CardContent>
                 </Card>
               </div>
