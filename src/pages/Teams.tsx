@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,13 @@ interface TeamMember {
   role: string;
 }
 
+interface JoinRequest {
+  id: string;
+  userId: string;
+  username: string;
+  requestDate: string;
+}
+
 interface Team {
   id: string;
   name: string;
@@ -25,6 +31,7 @@ interface Team {
   membersCount: number;
   maxMembers: number;
   skills: string[];
+  joinRequests?: JoinRequest[];
 }
 
 const Teams = () => {
